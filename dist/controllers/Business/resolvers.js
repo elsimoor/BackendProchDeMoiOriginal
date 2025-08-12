@@ -188,7 +188,7 @@ exports.businessResolvers = {
          */
         approveHotel: async (_parent, { id }, _ctx) => {
             try {
-                let user = await UserModel_1.default.findById({
+                let user = await UserModel_1.default.findOne({
                     businessId: id
                 });
                 if (!user) {
@@ -199,7 +199,7 @@ exports.businessResolvers = {
                 return HotelModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
             }
             catch (error) {
-                console.error('Error approving hotel:', error);
+                console.log('Error approving hotel:', error);
                 throw new graphql_1.GraphQLError('Failed to approve hotel.');
             }
         },
@@ -208,31 +208,101 @@ exports.businessResolvers = {
          * does not exist the operation resolves to null.
          */
         rejectHotel: async (_parent, { id }, _ctx) => {
-            return HotelModel_1.default.findByIdAndUpdate(id, { isActive: false }, { new: true });
+            try {
+                let user = await UserModel_1.default.findOne({
+                    businessId: id
+                });
+                if (!user) {
+                    throw new graphql_1.GraphQLError('User not found for the hotel.');
+                }
+                user.isActive = false;
+                await user.save();
+                return HotelModel_1.default.findByIdAndUpdate(id, { isActive: false }, { new: true });
+            }
+            catch (error) {
+                console.log('Error approving hotel:', error);
+                throw new graphql_1.GraphQLError('Failed to approve hotel.');
+            }
         },
         /**
          * Approve a restaurant by setting isActive to true.
          */
         approveRestaurant: async (_parent, { id }, _ctx) => {
-            return RestaurantModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
+            try {
+                let user = await UserModel_1.default.findOne({
+                    businessId: id
+                });
+                if (!user) {
+                    throw new graphql_1.GraphQLError('User not found for the resto.');
+                }
+                user.isActive = true;
+                await user.save();
+                return RestaurantModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
+            }
+            catch (error) {
+                console.log('Error approving resto:', error);
+                throw new graphql_1.GraphQLError('Failed to approve resto.');
+            }
         },
         /**
          * Reject a restaurant by ensuring isActive remains false.
          */
         rejectRestaurant: async (_parent, { id }, _ctx) => {
-            return RestaurantModel_1.default.findByIdAndUpdate(id, { isActive: false }, { new: true });
+            try {
+                let user = await UserModel_1.default.findOne({
+                    businessId: id
+                });
+                if (!user) {
+                    throw new graphql_1.GraphQLError('User not found for the resto.');
+                }
+                user.isActive = false;
+                await user.save();
+                return RestaurantModel_1.default.findByIdAndUpdate(id, { isActive: false }, { new: true });
+            }
+            catch (error) {
+                console.log('Error approving resto:', error);
+                throw new graphql_1.GraphQLError('Failed to approve resto.');
+            }
         },
         /**
          * Approve a salon by setting isActive to true.
          */
         approveSalon: async (_parent, { id }, _ctx) => {
-            return SalonModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
+            try {
+                let user = await UserModel_1.default.findOne({
+                    businessId: id
+                });
+                if (!user) {
+                    throw new graphql_1.GraphQLError('User not found for the salon.');
+                }
+                user.isActive = true;
+                await user.save();
+                return SalonModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
+            }
+            catch (error) {
+                console.log('Error approving salon:', error);
+                throw new graphql_1.GraphQLError('Failed to approve salon.');
+            }
         },
         /**
          * Reject a salon by ensuring isActive remains false.
          */
         rejectSalon: async (_parent, { id }, _ctx) => {
-            return SalonModel_1.default.findByIdAndUpdate(id, { isActive: false }, { new: true });
+            try {
+                let user = await UserModel_1.default.findOne({
+                    businessId: id
+                });
+                if (!user) {
+                    throw new graphql_1.GraphQLError('User not found for the salon.');
+                }
+                user.isActive = false;
+                await user.save();
+                return SalonModel_1.default.findByIdAndUpdate(id, { isActive: false }, { new: true });
+            }
+            catch (error) {
+                console.log('Error approving salon:', error);
+                throw new graphql_1.GraphQLError('Failed to approve salon.');
+            }
         },
         createReservationV2: async (_parent, { input }) => {
             const { restaurantId, ...reservationData } = input;

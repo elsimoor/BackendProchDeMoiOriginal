@@ -280,7 +280,7 @@ export const businessResolvers = {
       _ctx: Context
     ) => {
       try {
-        let user = await UserModel.findById({
+        let user = await UserModel.findOne({
           businessId: id
         });
         if (!user) {
@@ -291,7 +291,7 @@ export const businessResolvers = {
         await user.save();
         return HotelModel.findByIdAndUpdate(id, { isActive: true }, { new: true });
       } catch (error) {
-        console.error('Error approving hotel:', error);
+        console.log('Error approving hotel:', error);
         throw new GraphQLError('Failed to approve hotel.');
       }
     },
@@ -304,7 +304,21 @@ export const businessResolvers = {
       { id }: IdArg,
       _ctx: Context
     ) => {
-      return HotelModel.findByIdAndUpdate(id, { isActive: false }, { new: true });
+      try {
+        let user = await UserModel.findOne({
+          businessId: id
+        });
+        if (!user) {
+          throw new GraphQLError('User not found for the hotel.');
+        }
+
+        user.isActive = false;
+        await user.save();
+        return HotelModel.findByIdAndUpdate(id, { isActive: false }, { new: true });
+      } catch (error) {
+        console.log('Error approving hotel:', error);
+        throw new GraphQLError('Failed to approve hotel.');
+      }
     },
     /**
      * Approve a restaurant by setting isActive to true.
@@ -314,7 +328,22 @@ export const businessResolvers = {
       { id }: IdArg,
       _ctx: Context
     ) => {
-      return RestaurantModel.findByIdAndUpdate(id, { isActive: true }, { new: true });
+
+      try {
+        let user = await UserModel.findOne({
+          businessId: id
+        });
+        if (!user) {
+          throw new GraphQLError('User not found for the resto.');
+        }
+
+        user.isActive = true;
+        await user.save();
+        return RestaurantModel.findByIdAndUpdate(id, { isActive: true }, { new: true });
+      } catch (error) {
+        console.log('Error approving resto:', error);
+        throw new GraphQLError('Failed to approve resto.');
+      }
     },
     /**
      * Reject a restaurant by ensuring isActive remains false.
@@ -324,7 +353,21 @@ export const businessResolvers = {
       { id }: IdArg,
       _ctx: Context
     ) => {
-      return RestaurantModel.findByIdAndUpdate(id, { isActive: false }, { new: true });
+      try {
+        let user = await UserModel.findOne({
+          businessId: id
+        });
+        if (!user) {
+          throw new GraphQLError('User not found for the resto.');
+        }
+
+        user.isActive = false;
+        await user.save();
+        return RestaurantModel.findByIdAndUpdate(id, { isActive: false }, { new: true });
+      } catch (error) {
+        console.log('Error approving resto:', error);
+        throw new GraphQLError('Failed to approve resto.');
+      }
     },
     /**
      * Approve a salon by setting isActive to true.
@@ -334,7 +377,21 @@ export const businessResolvers = {
       { id }: IdArg,
       _ctx: Context
     ) => {
-      return SalonModel.findByIdAndUpdate(id, { isActive: true }, { new: true });
+      try {
+        let user = await UserModel.findOne({
+          businessId: id
+        });
+        if (!user) {
+          throw new GraphQLError('User not found for the salon.');
+        }
+
+        user.isActive = true;
+        await user.save();
+        return SalonModel.findByIdAndUpdate(id, { isActive: true }, { new: true });
+      } catch (error) {
+        console.log('Error approving salon:', error);
+        throw new GraphQLError('Failed to approve salon.');
+      }
     },
     /**
      * Reject a salon by ensuring isActive remains false.
@@ -344,7 +401,21 @@ export const businessResolvers = {
       { id }: IdArg,
       _ctx: Context
     ) => {
-      return SalonModel.findByIdAndUpdate(id, { isActive: false }, { new: true });
+      try {
+        let user = await UserModel.findOne({
+          businessId: id
+        });
+        if (!user) {
+          throw new GraphQLError('User not found for the salon.');
+        }
+
+        user.isActive = false;
+        await user.save();
+        return SalonModel.findByIdAndUpdate(id, { isActive: false }, { new: true });
+      } catch (error) {
+        console.log('Error approving salon:', error);
+        throw new GraphQLError('Failed to approve salon.');
+      }
     },
 
     createReservationV2: async (
