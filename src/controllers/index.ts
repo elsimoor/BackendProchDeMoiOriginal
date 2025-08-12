@@ -15,6 +15,8 @@ import { privatisationResolvers, privatisationTypeDef } from "./privatisation";
 import { dashboardResolvers, dashboardTypeDef } from "./dashboard";
 // Import invoice controller
 import { invoiceResolvers, invoiceTypeDef } from "./invoice";
+// Import landing card controller
+import { landingCardResolvers, landingCardTypeDefs } from "./landingCard";
 
 
 
@@ -50,6 +52,9 @@ const resolvers = [
   // Invoice resolvers provide queries and mutations for invoices
   invoiceResolvers,
 
+  // Landing card resolvers for promotional landing page cards
+  landingCardResolvers,
+
 
 ];
 const typeDefs = [
@@ -69,6 +74,9 @@ const typeDefs = [
 
   // Invoice schema
   invoiceTypeDef,
+
+  // Landing card type definitions
+  landingCardTypeDefs,
   inputs,
   root,
 ];

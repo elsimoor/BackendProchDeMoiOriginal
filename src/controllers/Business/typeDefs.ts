@@ -24,6 +24,14 @@ export const businessTypeDef = gql`
     updatedAt: Date!
     # Opening periods during which reservations are allowed
     openingPeriods: [OpeningPeriod!]
+
+    # The featured landing card for this hotel.  A landing card is a
+    # promotional entry created by the hotel manager via the dashboard.
+    # Only one card per hotel should be marked as featured.  When
+    # present, this card's information will be displayed on the
+    # platform's search results and landing pages.  Null if no card
+    # has been selected.
+    featuredLandingCard: LandingCard
   }
 
   type Restaurant {

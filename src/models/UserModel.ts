@@ -64,7 +64,7 @@ const userSchema = new Schema<IUser>({
   phone: String,
   isActive: {
     type: Boolean,
-    default: true
+    default: false
   },
   lastLogin: Date,
   preferences: {
