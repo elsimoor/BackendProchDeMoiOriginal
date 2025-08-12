@@ -75,11 +75,11 @@ interface RestaurantDocument extends Document {
 }
 
 const restaurantSchema = new Schema<RestaurantDocument>({
-  clientId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Client',
-    // required: true,
-  },
+  // clientId: {
+  //   type: Schema.Types.ObjectId,
+  //   ref: 'Client',
+  //   // required: true,
+  // },
   name: {
     type: String,
     required: true,
