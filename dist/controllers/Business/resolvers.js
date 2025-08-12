@@ -11,6 +11,7 @@ const RestaurantModel_1 = __importDefault(require("../../models/RestaurantModel"
 const SalonModel_1 = __importDefault(require("../../models/SalonModel"));
 const ReservationModel_1 = __importDefault(require("../../models/ReservationModel"));
 const LandingCardModel_1 = __importDefault(require("../../models/LandingCardModel"));
+const UserModel_1 = __importDefault(require("../../models/UserModel"));
 exports.businessResolvers = {
     Query: {
         hotels: async () => {
@@ -186,7 +187,21 @@ exports.businessResolvers = {
          * Approve a hotel by setting isActive to true.
          */
         approveHotel: async (_parent, { id }, _ctx) => {
-            return HotelModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
+            try {
+                let user = await UserModel_1.default.findById({
+                    businessId: id
+                });
+                if (!user) {
+                    throw new graphql_1.GraphQLError('User not found for the hotel.');
+                }
+                user.isActive = true;
+                await user.save();
+                return HotelModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
+            }
+            catch (error) {
+                console.error('Error approving hotel:', error);
+                throw new graphql_1.GraphQLError('Failed to approve hotel.');
+            }
         },
         /**
          * Reject a hotel by ensuring isActive remains false.  If the hotel

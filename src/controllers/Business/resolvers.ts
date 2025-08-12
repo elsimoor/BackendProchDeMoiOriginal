@@ -5,6 +5,7 @@ import RestaurantModel from '../../models/RestaurantModel';
 import SalonModel from '../../models/SalonModel';
 import ReservationModel from '../../models/ReservationModel';
 import LandingCardModel from '../../models/LandingCardModel';
+import UserModel from '../../models/UserModel';
 
 
 interface Context {
@@ -278,7 +279,21 @@ export const businessResolvers = {
       { id }: IdArg,
       _ctx: Context
     ) => {
-      return HotelModel.findByIdAndUpdate(id, { isActive: true }, { new: true });
+      try {
+        let user = await UserModel.findById({
+          businessId: id
+        });
+        if (!user) {
+          throw new GraphQLError('User not found for the hotel.');
+        }
+
+        user.isActive = true;
+        await user.save();
+        return HotelModel.findByIdAndUpdate(id, { isActive: true }, { new: true });
+      } catch (error) {
+        console.error('Error approving hotel:', error);
+        throw new GraphQLError('Failed to approve hotel.');
+      }
     },
     /**
      * Reject a hotel by ensuring isActive remains false.  If the hotel
