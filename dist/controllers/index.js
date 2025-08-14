@@ -19,6 +19,8 @@ const privatisation_1 = require("./privatisation");
 const dashboard_1 = require("./dashboard");
 // Import invoice controller
 const invoice_1 = require("./invoice");
+// Payment controller handles checkout sessions and payment records
+const payment_1 = require("./payment");
 const All_1 = require("./All");
 const inputs_1 = require("./inputs");
 exports.extendedTypeDefs = (0, apollo_server_express_1.gql) `
@@ -47,6 +49,8 @@ const resolvers = [
     invoice_1.invoiceResolvers,
     // RoomType resolvers allow management of custom room categories
     RoomType_1.roomTypeResolvers,
+    // Payment resolvers provide queries and mutations for payments
+    payment_1.paymentResolvers,
 ];
 exports.resolvers = resolvers;
 const typeDefs = [
@@ -69,6 +73,8 @@ const typeDefs = [
     All_1.root,
     // RoomType typedefs must be registered after base scalars
     RoomType_1.roomTypeTypeDef,
+    // Payment typedefs define payment queries/mutations and types
+    payment_1.paymentTypeDef,
 ];
 exports.typeDefs = typeDefs;
 //# sourceMappingURL=index.js.map

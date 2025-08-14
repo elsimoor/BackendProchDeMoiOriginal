@@ -80,7 +80,7 @@ export const root = gql`
     deleteHotel(id: ID!): Boolean!
 
     createRestaurant(input: RestaurantInput!): Restaurant!
-    # updateRestaurant(id: ID!, input: RestaurantInput!): Restaurant!
+    updateRestaurant(id: ID!, input: RestaurantInput!): Restaurant!
     deleteRestaurant(id: ID!): Boolean!
 
     createSalon(input: SalonInput!): Salon!

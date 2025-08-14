@@ -81,7 +81,7 @@ exports.root = (0, apollo_server_express_1.gql) `
     deleteHotel(id: ID!): Boolean!
 
     createRestaurant(input: RestaurantInput!): Restaurant!
-    # updateRestaurant(id: ID!, input: RestaurantInput!): Restaurant!
+    updateRestaurant(id: ID!, input: RestaurantInput!): Restaurant!
     deleteRestaurant(id: ID!): Boolean!
 
     createSalon(input: SalonInput!): Salon!

@@ -26,6 +26,31 @@ exports.businessTypeDef = (0, apollo_server_express_1.gql) `
     updatedAt: Date!
     # Opening periods during which reservations are allowed
     openingPeriods: [OpeningPeriod!]
+    #
+    # A featured landing card configured by the hotel manager.  This
+    # optional object contains promotional details used on the public
+    # landing pages.  If no card has been configured, this field
+    # resolves to null.  See the "LandingCard" type definition
+    # below for the available fields.
+    featuredLandingCard: LandingCard
+  }
+
+  #
+  # Represents an optional promotional card for a hotel.  The fields
+  # correspond to the values requested by the front‑end when displaying
+  # featured hotels on the landing page.  All fields are nullable to
+  # allow partial population or computed defaults on the client side.
+  type LandingCard {
+    id: ID
+    title: String
+    description: String
+    image: String
+    price: Float
+    rating: Float
+    location: String
+    tags: [String!]
+    amenities: [String!]
+    specialOffer: Boolean
   }
 
   type Restaurant {
@@ -224,7 +249,11 @@ exports.businessTypeDef = (0, apollo_server_express_1.gql) `
   }
 
   extend type Mutation {
-    updateRestaurant(id: ID!, input: UpdateRestaurantInput!): Restaurant
+    #
+    # The restaurant update mutation is declared in the global root schema
+    # (src/controllers/All.ts) using the 'RestaurantInput' type.  We omit
+    # its declaration here to avoid conflicting definitions.  The
+    # CreateReservationV2 and CreatePrivatisationV2 mutations remain.
     createReservationV2(input: CreateReservationV2Input!): Reservation!
     createPrivatisationV2(input: CreatePrivatisationV2Input!): Reservation!
   }

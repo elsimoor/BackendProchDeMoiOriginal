@@ -61,6 +61,22 @@ export const businessResolvers = {
     }
   },
 
+  // Field resolvers for custom types
+  Hotel: {
+    /**
+     * Resolve the featuredLandingCard field for a hotel.  Currently
+     * no explicit landing card data is stored in the database, so
+     * this resolver returns null for all hotels.  The front‑end
+     * gracefully handles a null response by generating fallback
+     * values.  To support user‑configured cards in the future, add
+     * a `featuredLandingCard` or `landingCards` property to the
+     * Hotel model and return the appropriate record here.
+     */
+    featuredLandingCard: () => {
+      return null;
+    },
+  },
+
   Mutation: {
     createHotel: async (
       _parent,
@@ -103,6 +119,13 @@ export const businessResolvers = {
       { id, input },
       _ctx: Context
     ) => {
+      // Perform input validation and calculations for settings-related fields.  We
+      // fetch the current restaurant up front so that we can merge nested
+      // settings objects rather than overwriting them entirely when updating.
+      const restaurant = await RestaurantModel.findById(id);
+      if (!restaurant) {
+        throw new GraphQLError('Restaurant not found.');
+      }
       if (input.settings) {
         const {
           horaires,
@@ -114,7 +137,7 @@ export const businessResolvers = {
         } = input.settings;
 
         // Validate horaires: ouverture < fermeture
-        if (horaires) {
+        if (Array.isArray(horaires)) {
           for (const horaire of horaires) {
             if (horaire.ouverture && horaire.fermeture && horaire.ouverture >= horaire.fermeture) {
               throw new GraphQLError("L'heure d'ouverture doit être antérieure à l'heure de fermeture.", {
@@ -126,7 +149,7 @@ export const businessResolvers = {
         }
 
         // Validate frequenceCreneauxMinutes: positive and divisible by 5
-        if (frequenceCreneauxMinutes) {
+        if (frequenceCreneauxMinutes !== undefined && frequenceCreneauxMinutes !== null) {
           if (frequenceCreneauxMinutes <= 0 || frequenceCreneauxMinutes % 5 !== 0) {
             throw new GraphQLError("La fréquence des créneaux doit être un nombre positif divisible par 5.", {
               //@ts-ignore
@@ -159,8 +182,8 @@ export const businessResolvers = {
         }
 
         // Validate maxReservationsParCreneau against capaciteTotale and capaciteTheorique
-        if (maxReservationsParCreneau) {
-          if (capaciteTotale !== undefined && maxReservationsParCreneau > capaciteTotale) {
+        if (maxReservationsParCreneau !== undefined && maxReservationsParCreneau !== null) {
+          if (capaciteTotale !== undefined && capaciteTotale !== null && maxReservationsParCreneau > capaciteTotale) {
             throw new GraphQLError("La limite par créneau ne peut pas dépasser la capacité totale.", {
               //@ts-ignore
               extensions: { code: 'BAD_USER_INPUT', field: 'maxReservationsParCreneau' },
@@ -175,7 +198,21 @@ export const businessResolvers = {
           }
         }
       }
-      return RestaurantModel.findByIdAndUpdate(id, input, { new: true });
+
+      // Build the update payload.  To avoid wiping out nested objects such as
+      // restaurant.settings when only a subset of fields are provided, we
+      // perform a shallow merge: existing settings are spread first, then
+      // overridden by any provided settings fields.  For other top-level
+      // fields we rely on Mongoose's default behavior of replacing the
+      // property when defined in input.
+      const updateData: any = { ...input };
+      if (input.settings) {
+        const currentSettings = restaurant.settings ? (restaurant.settings as any).toObject ? (restaurant.settings as any).toObject() : restaurant.settings : {};
+        updateData.settings = { ...currentSettings, ...input.settings };
+      }
+      // Do not merge businessHours here; if provided, it will replace the
+      // existing array.  If not provided, the existing businessHours remains.
+      return RestaurantModel.findByIdAndUpdate(id, updateData, { new: true });
     },
 
     deleteRestaurant: async (
@@ -233,6 +270,10 @@ export const businessResolvers = {
         partySize: partySize,
         time: input.heure,
         status: "confirmed",
+        // Mark reservations created from the user-facing UI with a
+        // specific source so that dashboard metrics can distinguish
+        // them from bookings entered via the admin, phone, etc.
+        source: 'new-ui',
       });
       // Compute a basic total amount for the booking based on the number of guests.
       // If the restaurant has defined time-based pricing in its settings.horaires,
@@ -306,6 +347,11 @@ export const businessResolvers = {
         time: input.heure,
         duration: input.dureeHeures,
         status: "confirmed",
+        // Tag privatisations from the user-facing UI to ensure they
+        // contribute to dashboard statistics.  Without this property
+        // the default source would be 'website' which the dashboard
+        // does not count.
+        source: 'new-ui',
         notes: `Privatisation: ${privatisationData.type} - ${privatisationData.espace}, Menu: ${privatisationData.menu}`,
         specialRequests: `Privatisation event for ${partySize} guests.`
       });

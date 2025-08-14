@@ -19,6 +19,9 @@ import { dashboardResolvers, dashboardTypeDef } from "./dashboard";
 // Import invoice controller
 import { invoiceResolvers, invoiceTypeDef } from "./invoice";
 
+// Payment controller handles checkout sessions and payment records
+import { paymentResolvers, paymentTypeDef } from "./payment";
+
 
 
 
@@ -56,6 +59,9 @@ const resolvers = [
   // RoomType resolvers allow management of custom room categories
   roomTypeResolvers,
 
+  // Payment resolvers provide queries and mutations for payments
+  paymentResolvers,
+
 
 ];
 const typeDefs = [
@@ -80,5 +86,8 @@ const typeDefs = [
 
   // RoomType typedefs must be registered after base scalars
   roomTypeTypeDef,
+
+  // Payment typedefs define payment queries/mutations and types
+  paymentTypeDef,
 ];
 export { resolvers, typeDefs };

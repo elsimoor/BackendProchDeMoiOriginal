@@ -20,9 +20,18 @@ exports.inputs = (0, apollo_server_express_1.gql) `
     openingPeriods: [OpeningPeriodInput!]
   }
 
+  #
+  # Input used when creating or updating a restaurant.  The 'clientId' field
+  # represents the owner/client associated with the restaurant.  It must be
+  # provided when creating a restaurant but is optional when updating.  The
+  # GraphQL schema does not distinguish between create and update inputs, so
+  # we mark 'clientId' as optional here to allow partial updates.  Similarly
+  # the 'name' is required when creating a new restaurant but optional when
+  # updating existing records.  Other fields are optional and may be omitted
+  # entirely during updates; only provided fields will be modified.
   input RestaurantInput {
-    clientId: ID!
-    name: String!
+    clientId: ID
+    name: String
     description: String
     address: AddressInput
     contact: ContactInput

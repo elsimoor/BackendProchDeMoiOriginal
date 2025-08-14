@@ -73,6 +73,7 @@
     "twilio": "^3.84.1",
     "uuidv4": "^6.2.13",
     "written-number": "^0.11.1"
+    ,"stripe": "^12.15.0"
   },
   "resolutions": {
     "fs-capacitor": "3.0.0"
