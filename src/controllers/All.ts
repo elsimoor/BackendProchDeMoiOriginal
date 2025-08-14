@@ -63,13 +63,6 @@ export const root = gql`
       status: String
     ): [Guest!]!
     guest(id: ID!): Guest
-
-    # List of hotels pending approval (isActive = false).  Only visible to admins.
-    pendingHotels: [Hotel!]!
-    # List of restaurants pending approval (isActive = false).
-    pendingRestaurants: [Restaurant!]!
-    # List of salons pending approval (isActive = false).
-    pendingSalons: [Salon!]!
   }
 
   extend type Mutation {
@@ -128,16 +121,6 @@ export const root = gql`
     createGuest(input: GuestInput!): Guest!
     updateGuest(id: ID!, input: GuestInput!): Guest!
     deleteGuest(id: ID!): Boolean!
-
-    # Approve or reject businesses.  These mutations update the
-    # isActive field on the corresponding model.  Only admins should
-    # call these operations.
-    approveHotel(id: ID!): Hotel
-    rejectHotel(id: ID!): Hotel
-    approveRestaurant(id: ID!): Restaurant
-    rejectRestaurant(id: ID!): Restaurant
-    approveSalon(id: ID!): Salon
-    rejectSalon(id: ID!): Salon
   }
 `;
 

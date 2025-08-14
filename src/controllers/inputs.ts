@@ -19,7 +19,7 @@ export const inputs = gql`
   }
 
   input RestaurantInput {
-    # clientId: ID
+    clientId: ID!
     name: String!
     description: String
     address: AddressInput

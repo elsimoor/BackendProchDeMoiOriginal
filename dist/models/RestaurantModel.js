@@ -25,11 +25,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const restaurantSchema = new mongoose_1.Schema({
-    // clientId: {
-    //   type: Schema.Types.ObjectId,
-    //   ref: 'Client',
-    //   // required: true,
-    // },
+    clientId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Client',
+        // required: true,
+    },
     name: {
         type: String,
         required: true,

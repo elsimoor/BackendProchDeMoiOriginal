@@ -13,7 +13,7 @@ export const userTypeDefs = gql`
     businessId: ID
     avatar: String
     phone: String
-    isActive: Boolean
+    isActive: Boolean!
     lastLogin: Date
     preferences: UserPreferences
     createdAt: Date!

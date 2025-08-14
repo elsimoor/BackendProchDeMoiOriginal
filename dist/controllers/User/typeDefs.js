@@ -15,7 +15,7 @@ exports.userTypeDefs = (0, apollo_server_express_1.gql) `
     businessId: ID
     avatar: String
     phone: String
-    isActive: Boolean
+    isActive: Boolean!
     lastLogin: Date
     preferences: UserPreferences
     createdAt: Date!

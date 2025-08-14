@@ -10,8 +10,6 @@ const HotelModel_1 = __importDefault(require("../../models/HotelModel"));
 const RestaurantModel_1 = __importDefault(require("../../models/RestaurantModel"));
 const SalonModel_1 = __importDefault(require("../../models/SalonModel"));
 const ReservationModel_1 = __importDefault(require("../../models/ReservationModel"));
-const LandingCardModel_1 = __importDefault(require("../../models/LandingCardModel"));
-const UserModel_1 = __importDefault(require("../../models/UserModel"));
 exports.businessResolvers = {
     Query: {
         hotels: async () => {
@@ -31,55 +29,11 @@ exports.businessResolvers = {
         },
         salon: async (_parent, { id }) => {
             return SalonModel_1.default.findById(id);
-        },
-        /**
-         * Return all hotels with isActive = false.  Used by admin
-         * to view pending hotel registrations.
-         */
-        pendingHotels: async () => {
-            return HotelModel_1.default.find({ isActive: false });
-        },
-        /**
-         * Return all restaurants with isActive = false.  Used by admin
-         * to view pending restaurant registrations.
-         */
-        pendingRestaurants: async () => {
-            return RestaurantModel_1.default.find({ isActive: false });
-        },
-        /**
-         * Return all salons with isActive = false.  Used by admin
-         * to view pending salon registrations.
-         */
-        pendingSalons: async () => {
-            return SalonModel_1.default.find({ isActive: false });
-        }
-    },
-    /**
-     * Field resolvers for nested properties on the Hotel type.  These resolvers
-     * are executed after the parent Hotel object has been fetched by the
-     * businessQueries above.  The featuredLandingCard resolver looks up
-     * the single landing card marked as featured for the given hotel.
-     */
-    Hotel: {
-        featuredLandingCard: async (parent) => {
-            // The parent object contains the hotel id.  Use it to find the
-            // landing card with isFeatured = true for this hotel.  We pass
-            // the businessType explicitly to avoid mixing hotel cards with
-            // restaurant or salon cards that may share the same id space.
-            return LandingCardModel_1.default.findOne({ businessId: parent.id, businessType: 'hotel', isFeatured: true });
         }
     },
     Mutation: {
         createHotel: async (_parent, { input }) => {
-            // When creating a hotel via the registration flow we mark
-            // it as inactive by default.  This allows an administrator to
-            // review and approve the business before it becomes visible on
-            // the platform.
-            const data = { ...input };
-            if (data.isActive === undefined) {
-                data.isActive = false;
-            }
-            const hotel = new HotelModel_1.default(data);
+            const hotel = new HotelModel_1.default(input);
             await hotel.save();
             return hotel;
         },
@@ -91,11 +45,7 @@ exports.businessResolvers = {
             return true;
         },
         createRestaurant: async (_parent, { input }, _ctx) => {
-            const data = { ...input };
-            if (data.isActive === undefined) {
-                data.isActive = false;
-            }
-            const restaurant = new RestaurantModel_1.default(data);
+            const restaurant = new RestaurantModel_1.default(input);
             await restaurant.save();
             return restaurant;
         },
@@ -168,11 +118,7 @@ exports.businessResolvers = {
             return true;
         },
         createSalon: async (_parent, { input }, _ctx) => {
-            const data = { ...input };
-            if (data.isActive === undefined) {
-                data.isActive = false;
-            }
-            const salon = new SalonModel_1.default(data);
+            const salon = new SalonModel_1.default(input);
             await salon.save();
             return salon;
         },
@@ -182,127 +128,6 @@ exports.businessResolvers = {
         deleteSalon: async (_parent, { id }, _ctx) => {
             await SalonModel_1.default.findByIdAndUpdate(id, { isActive: false });
             return true;
-        },
-        /**
-         * Approve a hotel by setting isActive to true.
-         */
-        approveHotel: async (_parent, { id }, _ctx) => {
-            try {
-                let user = await UserModel_1.default.findOne({
-                    businessId: id
-                });
-                if (!user) {
-                    throw new graphql_1.GraphQLError('User not found for the hotel.');
-                }
-                user.isActive = true;
-                await user.save();
-                return HotelModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
-            }
-            catch (error) {
-                console.log('Error approving hotel:', error);
-                throw new graphql_1.GraphQLError('Failed to approve hotel.');
-            }
-        },
-        /**
-         * Reject a hotel by ensuring isActive remains false.  If the hotel
-         * does not exist the operation resolves to null.
-         */
-        rejectHotel: async (_parent, { id }, _ctx) => {
-            try {
-                let user = await UserModel_1.default.findOne({
-                    businessId: id
-                });
-                if (!user) {
-                    throw new graphql_1.GraphQLError('User not found for the hotel.');
-                }
-                user.isActive = false;
-                await user.save();
-                return HotelModel_1.default.findByIdAndUpdate(id, { isActive: false }, { new: true });
-            }
-            catch (error) {
-                console.log('Error approving hotel:', error);
-                throw new graphql_1.GraphQLError('Failed to approve hotel.');
-            }
-        },
-        /**
-         * Approve a restaurant by setting isActive to true.
-         */
-        approveRestaurant: async (_parent, { id }, _ctx) => {
-            try {
-                let user = await UserModel_1.default.findOne({
-                    businessId: id
-                });
-                if (!user) {
-                    throw new graphql_1.GraphQLError('User not found for the resto.');
-                }
-                user.isActive = true;
-                await user.save();
-                return RestaurantModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
-            }
-            catch (error) {
-                console.log('Error approving resto:', error);
-                throw new graphql_1.GraphQLError('Failed to approve resto.');
-            }
-        },
-        /**
-         * Reject a restaurant by ensuring isActive remains false.
-         */
-        rejectRestaurant: async (_parent, { id }, _ctx) => {
-            try {
-                let user = await UserModel_1.default.findOne({
-                    businessId: id
-                });
-                if (!user) {
-                    throw new graphql_1.GraphQLError('User not found for the resto.');
-                }
-                user.isActive = false;
-                await user.save();
-                return RestaurantModel_1.default.findByIdAndUpdate(id, { isActive: false }, { new: true });
-            }
-            catch (error) {
-                console.log('Error approving resto:', error);
-                throw new graphql_1.GraphQLError('Failed to approve resto.');
-            }
-        },
-        /**
-         * Approve a salon by setting isActive to true.
-         */
-        approveSalon: async (_parent, { id }, _ctx) => {
-            try {
-                let user = await UserModel_1.default.findOne({
-                    businessId: id
-                });
-                if (!user) {
-                    throw new graphql_1.GraphQLError('User not found for the salon.');
-                }
-                user.isActive = true;
-                await user.save();
-                return SalonModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
-            }
-            catch (error) {
-                console.log('Error approving salon:', error);
-                throw new graphql_1.GraphQLError('Failed to approve salon.');
-            }
-        },
-        /**
-         * Reject a salon by ensuring isActive remains false.
-         */
-        rejectSalon: async (_parent, { id }, _ctx) => {
-            try {
-                let user = await UserModel_1.default.findOne({
-                    businessId: id
-                });
-                if (!user) {
-                    throw new graphql_1.GraphQLError('User not found for the salon.');
-                }
-                user.isActive = false;
-                await user.save();
-                return SalonModel_1.default.findByIdAndUpdate(id, { isActive: false }, { new: true });
-            }
-            catch (error) {
-                console.log('Error approving salon:', error);
-                throw new graphql_1.GraphQLError('Failed to approve salon.');
-            }
         },
         createReservationV2: async (_parent, { input }) => {
             const { restaurantId, ...reservationData } = input;

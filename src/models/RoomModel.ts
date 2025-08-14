@@ -47,10 +47,14 @@ const roomSchema = new Schema<RoomDocument>({
     type: String,
     required: true
   },
+  // Room category.  This was previously restricted to a fixed set of
+  // values, but has been relaxed to allow hotels to define their
+  // own categories via the RoomType entity.  Any non-empty string
+  // is accepted.
   type: {
     type: String,
     required: true,
-    enum: ['Standard', 'Deluxe', 'Suite', 'Executive']
+    trim: true,
   },
   floor: Number,
   capacity: {

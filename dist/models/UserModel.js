@@ -67,7 +67,7 @@ const userSchema = new mongoose_1.Schema({
     phone: String,
     isActive: {
         type: Boolean,
-        default: false
+        default: true
     },
     lastLogin: Date,
     preferences: {

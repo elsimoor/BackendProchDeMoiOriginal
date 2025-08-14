@@ -11,14 +11,14 @@ const service_1 = require("./service");
 const Staff_1 = require("./Staff");
 const Table_1 = require("./Table");
 const User_1 = require("./User");
+// Import the room type controller
+const RoomType_1 = require("./RoomType");
 // New client controller providing multi‑tenant support
 const Client_1 = require("./Client");
 const privatisation_1 = require("./privatisation");
 const dashboard_1 = require("./dashboard");
 // Import invoice controller
 const invoice_1 = require("./invoice");
-// Import landing card controller
-const landingCard_1 = require("./landingCard");
 const All_1 = require("./All");
 const inputs_1 = require("./inputs");
 exports.extendedTypeDefs = (0, apollo_server_express_1.gql) `
@@ -45,8 +45,8 @@ const resolvers = [
     dashboard_1.dashboardResolvers,
     // Invoice resolvers provide queries and mutations for invoices
     invoice_1.invoiceResolvers,
-    // Landing card resolvers for promotional landing page cards
-    landingCard_1.landingCardResolvers,
+    // RoomType resolvers allow management of custom room categories
+    RoomType_1.roomTypeResolvers,
 ];
 exports.resolvers = resolvers;
 const typeDefs = [
@@ -65,10 +65,10 @@ const typeDefs = [
     dashboard_1.dashboardTypeDef,
     // Invoice schema
     invoice_1.invoiceTypeDef,
-    // Landing card type definitions
-    landingCard_1.landingCardTypeDefs,
     inputs_1.inputs,
     All_1.root,
+    // RoomType typedefs must be registered after base scalars
+    RoomType_1.roomTypeTypeDef,
 ];
 exports.typeDefs = typeDefs;
 //# sourceMappingURL=index.js.map

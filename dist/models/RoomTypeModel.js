@@ -24,45 +24,25 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const landingCardSchema = new mongoose_1.Schema({
-    businessId: {
+const roomTypeSchema = new mongoose_1.Schema({
+    hotelId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        required: true
+        ref: 'Hotel',
+        required: true,
     },
-    businessType: {
-        type: String,
-        enum: ['hotel', 'restaurant', 'salon'],
-        required: true
-    },
-    title: {
+    name: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
     },
-    description: String,
-    image: String,
-    price: Number,
-    rating: Number,
-    location: String,
-    tags: [String],
-    amenities: [String],
-    specialOffer: {
+    isActive: {
         type: Boolean,
-        default: false
+        default: true,
     },
-    /**
-     * Whether this card is the featured card for its associated business.
-     * Only one landing card per business should have this flag set to true.
-     * When a card is marked as featured it will be displayed on the public
-     * landing page for the business.  All other cards for that business
-     * should have this flag unset.
-     */
-    isFeatured: {
-        type: Boolean,
-        default: false
-    }
 }, {
-    timestamps: true
+    timestamps: true,
 });
-exports.default = mongoose_1.default.model('LandingCard', landingCardSchema);
-//# sourceMappingURL=LandingCardModel.js.map
+// enforce unique room type names per hotel
+roomTypeSchema.index({ hotelId: 1, name: 1 }, { unique: true });
+exports.default = mongoose_1.default.model('RoomType', roomTypeSchema);
+//# sourceMappingURL=RoomTypeModel.js.map

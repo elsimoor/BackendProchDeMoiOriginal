@@ -9,14 +9,15 @@ import { staffResolvers, staffTypeDef } from "./Staff";
 import { tableResolvers, tableTypeDefs } from "./Table";
 import { userResolvers, userTypeDefs } from "./User";
 
+// Import the room type controller
+import { roomTypeResolvers, roomTypeTypeDef } from "./RoomType";
+
 // New client controller providing multi‑tenant support
 import { clientResolvers, clientTypeDefs } from "./Client";
 import { privatisationResolvers, privatisationTypeDef } from "./privatisation";
 import { dashboardResolvers, dashboardTypeDef } from "./dashboard";
 // Import invoice controller
 import { invoiceResolvers, invoiceTypeDef } from "./invoice";
-// Import landing card controller
-import { landingCardResolvers, landingCardTypeDefs } from "./landingCard";
 
 
 
@@ -52,8 +53,8 @@ const resolvers = [
   // Invoice resolvers provide queries and mutations for invoices
   invoiceResolvers,
 
-  // Landing card resolvers for promotional landing page cards
-  landingCardResolvers,
+  // RoomType resolvers allow management of custom room categories
+  roomTypeResolvers,
 
 
 ];
@@ -74,10 +75,10 @@ const typeDefs = [
 
   // Invoice schema
   invoiceTypeDef,
-
-  // Landing card type definitions
-  landingCardTypeDefs,
   inputs,
   root,
+
+  // RoomType typedefs must be registered after base scalars
+  roomTypeTypeDef,
 ];
 export { resolvers, typeDefs };
