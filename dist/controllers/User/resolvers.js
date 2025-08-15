@@ -44,13 +44,18 @@ exports.userResolvers = {
                 throw new apollo_server_express_1.UserInputError('User already exists with this email');
             }
             // Create new user
+            // Create the user inactive by default.  Administrators will
+            // approve the associated business before the user gains access to
+            // their dashboard.  The first registrant is assigned the admin
+            // role for their business.
             const user = new UserModel_1.default({
                 lastName,
                 firstName,
                 email,
                 password,
                 businessType,
-                role: 'admin' // First user of a business is admin
+                role: 'admin',
+                isActive: false,
             });
             await user.save();
             // Generate token

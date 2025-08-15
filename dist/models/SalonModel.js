@@ -70,9 +70,12 @@ const salonSchema = new mongoose_1.Schema({
         average: { type: Number, default: 0 },
         count: { type: Number, default: 0 }
     },
+    // Salons start inactive until an administrator approves the
+    // registration request.  The owner is redirected to the pending
+    // approval page until isActive becomes true.
     isActive: {
         type: Boolean,
-        default: true
+        default: false
     }
 }, {
     timestamps: true

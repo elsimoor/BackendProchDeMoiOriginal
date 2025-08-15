@@ -63,6 +63,7 @@ export const root = gql`
       status: String
     ): [Guest!]!
     guest(id: ID!): Guest
+
   }
 
   extend type Mutation {
@@ -121,6 +122,7 @@ export const root = gql`
     createGuest(input: GuestInput!): Guest!
     updateGuest(id: ID!, input: GuestInput!): Guest!
     deleteGuest(id: ID!): Boolean!
+
   }
 `;
 

@@ -26,6 +26,10 @@ exports.businessTypeDef = (0, apollo_server_express_1.gql) `
     updatedAt: Date!
     # Opening periods during which reservations are allowed
     openingPeriods: [OpeningPeriod!]
+    # Paid room options available for purchase with a stay.  Each option is an
+    # add-on such as petals, champagne boxes or other enhancements.  All
+    # fields are returned so clients can display pricing information.
+    roomPaidOptions: [RoomPaidOption!]!
     #
     # A featured landing card configured by the hotel manager.  This
     # optional object contains promotional details used on the public
@@ -243,6 +247,15 @@ exports.businessTypeDef = (0, apollo_server_express_1.gql) `
     category: String!
   }
 
+  # Represents a paid room option that can be added to a hotel booking.
+  # Options include a name, optional description and category, and a price.
+  type RoomPaidOption {
+    name: String!
+    description: String
+    category: String
+    price: Float!
+  }
+
   type Rating {
     average: Float!
     count: Int!
@@ -283,6 +296,31 @@ exports.businessTypeDef = (0, apollo_server_express_1.gql) `
     phone: String
     email: String
     website: String
+  }
+
+  # ------------------------------------------------------------------------
+  # Pending approval queries and mutations
+  #
+  # These queries allow administrators to retrieve businesses awaiting
+  # approval.  Each list returns entities with isActive set to false.
+  # The corresponding mutations allow the admin to approve (activate)
+  # or reject (remove) a business.  Approval sets the isActive flag to
+  # true on both the business and any associated user accounts.  Rejection
+  # deletes the business and deactivates associated users.
+
+  extend type Query {
+    pendingHotels: [Hotel!]!
+    pendingRestaurants: [Restaurant!]!
+    pendingSalons: [Salon!]!
+  }
+
+  extend type Mutation {
+    approveHotel(id: ID!): Hotel!
+    rejectHotel(id: ID!): Hotel!
+    approveRestaurant(id: ID!): Restaurant!
+    rejectRestaurant(id: ID!): Restaurant!
+    approveSalon(id: ID!): Salon!
+    rejectSalon(id: ID!): Salon!
   }
 `;
 //# sourceMappingURL=typeDefs.js.map

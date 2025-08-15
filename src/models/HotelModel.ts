@@ -54,6 +54,19 @@ interface HotelDocument extends Document {
    * outside of these ranges.
    */
   openingPeriods?: { startDate: Date; endDate: Date }[];
+
+  /**
+   * Paid room options that can be purchased with a stay.  Each option
+   * represents an add‑on such as petals, champagne boxes or other
+   * amenities that have an associated price.  Options include a name,
+   * optional description and category, and a price.
+   */
+  roomPaidOptions?: {
+    name: string;
+    description?: string;
+    category?: string;
+    price: number;
+  }[];
 }
 
 const hotelSchema = new Schema<HotelDocument>({
@@ -108,9 +121,12 @@ const hotelSchema = new Schema<HotelDocument>({
     average: { type: Number, default: 0 },
     count: { type: Number, default: 0 }
   },
+  // Hotels are created inactive by default.  An administrator must
+  // approve a hotel before it can appear in listings or be accessed
+  // by its manager.  Once approved the isActive flag is set to true.
   isActive: {
     type: Boolean,
-    default: true
+    default: false
   },
   // Array of opening periods for the hotel.  Each period defines a
   // continuous range of dates during which the hotel is open for
@@ -120,7 +136,17 @@ const hotelSchema = new Schema<HotelDocument>({
       startDate: Date,
       endDate: Date
     }
-  ]
+  ],
+  // Array of paid room options.  Each entry has a name, optional
+  // description and category, and a price.  This allows hotel
+  // managers to offer purchasable extras such as petals or boxes
+  // when guests book a room.
+  roomPaidOptions: [{
+    name: String,
+    description: String,
+    category: String,
+    price: Number
+  }]
 }, {
   timestamps: true
 });

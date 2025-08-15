@@ -16,6 +16,10 @@ export const inputs = gql`
     # Array of opening periods during which the hotel accepts reservations.
     # If omitted the hotel is considered always open.
     openingPeriods: [OpeningPeriodInput!]
+    # Array of paid room options.  Each option defines a purchasable add-on
+    # such as petals, champagne boxes or other enhancements.  Options
+    # consist of a name, optional description and category, and a price.
+    roomPaidOptions: [RoomPaidOptionInput!]
   }
 
   #
@@ -104,6 +108,18 @@ export const inputs = gql`
     title: String!
     description: String!
     category: String!
+  }
+
+  """
+  Input type for specifying a paid room option when creating or updating
+  a hotel.  Each option is an add-on that can be purchased in addition
+  to a room booking.  The price field is required.
+  """
+  input RoomPaidOptionInput {
+    name: String!
+    description: String
+    category: String
+    price: Float!
   }
 
   """

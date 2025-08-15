@@ -64,6 +64,7 @@ exports.root = (0, apollo_server_express_1.gql) `
       status: String
     ): [Guest!]!
     guest(id: ID!): Guest
+
   }
 
   extend type Mutation {
@@ -122,6 +123,7 @@ exports.root = (0, apollo_server_express_1.gql) `
     createGuest(input: GuestInput!): Guest!
     updateGuest(id: ID!, input: GuestInput!): Guest!
     deleteGuest(id: ID!): Boolean!
+
   }
 `;
 //# sourceMappingURL=All.js.map

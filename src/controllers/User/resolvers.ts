@@ -87,13 +87,18 @@ export const userResolvers = {
       }
 
       // Create new user
+      // Create the user inactive by default.  Administrators will
+      // approve the associated business before the user gains access to
+      // their dashboard.  The first registrant is assigned the admin
+      // role for their business.
       const user = new UserModel({
         lastName,
         firstName,
         email,
         password,
         businessType,
-        role: 'admin' // First user of a business is admin
+        role: 'admin', // First user of a business is admin
+        isActive: false,
       });
 
       await user.save();

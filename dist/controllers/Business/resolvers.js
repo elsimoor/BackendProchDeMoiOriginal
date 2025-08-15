@@ -10,6 +10,9 @@ const HotelModel_1 = __importDefault(require("../../models/HotelModel"));
 const RestaurantModel_1 = __importDefault(require("../../models/RestaurantModel"));
 const SalonModel_1 = __importDefault(require("../../models/SalonModel"));
 const ReservationModel_1 = __importDefault(require("../../models/ReservationModel"));
+// Import the user model so that we can activate or deactivate users
+// when a business is approved or rejected.
+const UserModel_1 = __importDefault(require("../../models/UserModel"));
 exports.businessResolvers = {
     Query: {
         hotels: async () => {
@@ -29,6 +32,26 @@ exports.businessResolvers = {
         },
         salon: async (_parent, { id }) => {
             return SalonModel_1.default.findById(id);
+        },
+        /**
+         * Return all hotels awaiting approval.  A hotel is considered
+         * pending when its isActive flag is false.  This list is used
+         * by the admin approvals page.
+         */
+        pendingHotels: async () => {
+            return HotelModel_1.default.find({ isActive: false });
+        },
+        /**
+         * Return all restaurants awaiting approval (isActive = false).
+         */
+        pendingRestaurants: async () => {
+            return RestaurantModel_1.default.find({ isActive: false });
+        },
+        /**
+         * Return all salons awaiting approval (isActive = false).
+         */
+        pendingSalons: async () => {
+            return SalonModel_1.default.find({ isActive: false });
         }
     },
     // Field resolvers for custom types
@@ -163,6 +186,84 @@ exports.businessResolvers = {
         deleteSalon: async (_parent, { id }, _ctx) => {
             await SalonModel_1.default.findByIdAndUpdate(id, { isActive: false });
             return true;
+        },
+        /**
+         * Approve a pending hotel by setting its isActive flag to true and
+         * activating all users associated with the hotel.  If the hotel
+         * cannot be found an error is thrown.  Returns the updated hotel.
+         */
+        approveHotel: async (_parent, { id }) => {
+            const hotel = await HotelModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
+            if (!hotel) {
+                throw new graphql_1.GraphQLError('Hotel not found.');
+            }
+            // Activate all users linked to this hotel
+            await UserModel_1.default.updateMany({ businessId: id, businessType: 'hotel' }, { isActive: true });
+            return hotel;
+        },
+        /**
+         * Reject a pending hotel by deleting it and deactivating all
+         * associated users.  The removed hotel document is returned.  If
+         * no hotel is found an error is thrown.
+         */
+        rejectHotel: async (_parent, { id }) => {
+            const hotel = await HotelModel_1.default.findById(id);
+            if (!hotel) {
+                throw new graphql_1.GraphQLError('Hotel not found.');
+            }
+            await HotelModel_1.default.findByIdAndDelete(id);
+            await UserModel_1.default.updateMany({ businessId: id, businessType: 'hotel' }, { isActive: false, businessId: null, businessType: null });
+            return hotel;
+        },
+        /**
+         * Approve a pending restaurant by setting isActive to true and
+         * activating the associated users.
+         */
+        approveRestaurant: async (_parent, { id }) => {
+            const restaurant = await RestaurantModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
+            if (!restaurant) {
+                throw new graphql_1.GraphQLError('Restaurant not found.');
+            }
+            await UserModel_1.default.updateMany({ businessId: id, businessType: 'restaurant' }, { isActive: true });
+            return restaurant;
+        },
+        /**
+         * Reject a pending restaurant by deleting it and deactivating
+         * associated users.
+         */
+        rejectRestaurant: async (_parent, { id }) => {
+            const restaurant = await RestaurantModel_1.default.findById(id);
+            if (!restaurant) {
+                throw new graphql_1.GraphQLError('Restaurant not found.');
+            }
+            await RestaurantModel_1.default.findByIdAndDelete(id);
+            await UserModel_1.default.updateMany({ businessId: id, businessType: 'restaurant' }, { isActive: false, businessId: null, businessType: null });
+            return restaurant;
+        },
+        /**
+         * Approve a pending salon by setting isActive to true and activating
+         * the associated users.
+         */
+        approveSalon: async (_parent, { id }) => {
+            const salon = await SalonModel_1.default.findByIdAndUpdate(id, { isActive: true }, { new: true });
+            if (!salon) {
+                throw new graphql_1.GraphQLError('Salon not found.');
+            }
+            await UserModel_1.default.updateMany({ businessId: id, businessType: 'salon' }, { isActive: true });
+            return salon;
+        },
+        /**
+         * Reject a pending salon by deleting it and deactivating
+         * associated users.
+         */
+        rejectSalon: async (_parent, { id }) => {
+            const salon = await SalonModel_1.default.findById(id);
+            if (!salon) {
+                throw new graphql_1.GraphQLError('Salon not found.');
+            }
+            await SalonModel_1.default.findByIdAndDelete(id);
+            await UserModel_1.default.updateMany({ businessId: id, businessType: 'salon' }, { isActive: false, businessId: null, businessType: null });
+            return salon;
         },
         createReservationV2: async (_parent, { input }) => {
             const { restaurantId, ...reservationData } = input;

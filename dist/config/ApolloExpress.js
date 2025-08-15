@@ -22,8 +22,10 @@ exports.app = app;
 const startServer = async (app) => {
     //? Stripe webhook: handle raw body before body parsers
     {
-        const stripeSecret = process.env.STRIPE_SECRET_KEY;
-        const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+        // const stripeSecret = process.env.STRIPE_SECRET_KEY;
+        // const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+        const stripeSecret = "sk_test_51FVWVMFTpuSblutlRm24blXavnHRwnXClQAazqCmTmdvJFS04QaHO73p9iwpNGqo8TrH7xlDAByr4v51vxqADGRO00BRvE4gWR";
+        const webhookSecret = "we_1Rw3CkFTpuSblutlarxCPoUG";
         if (stripeSecret && webhookSecret) {
             const stripe = new stripe_1.default(stripeSecret, { apiVersion: '2022-11-15' });
             // Stripe requires the raw body to construct the event

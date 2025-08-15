@@ -65,9 +65,13 @@ const userSchema = new mongoose_1.Schema({
     },
     avatar: String,
     phone: String,
+    // Indicates whether the user can access protected dashboards.  New
+    // accounts start inactive so that an administrator must approve the
+    // associated business before the user can log in.  When the admin
+    // approves the business the resolver will flip this flag to true.
     isActive: {
         type: Boolean,
-        default: true
+        default: false
     },
     lastLogin: Date,
     preferences: {

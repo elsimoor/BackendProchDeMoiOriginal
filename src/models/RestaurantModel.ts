@@ -174,9 +174,13 @@ const restaurantSchema = new Schema<RestaurantDocument>({
     average: { type: Number, default: 0 },
     count: { type: Number, default: 0 }
   },
+  // Restaurants are initially inactive.  After an administrator
+  // reviews the registration request they set isActive to true.  Until
+  // then the owner cannot access the dashboard and the restaurant
+  // remains hidden from listings.
   isActive: {
     type: Boolean,
-    default: true
+    default: false
   }
 }, {
   timestamps: true
