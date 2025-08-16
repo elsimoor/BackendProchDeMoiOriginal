@@ -25,7 +25,7 @@ import {
 const { PORT, MONGO_URI } = process.env;
 
 const app = express();
- 
+
 const startServer = async (app: Application) => {
   //? Stripe webhook: handle raw body before body parsers
   {
