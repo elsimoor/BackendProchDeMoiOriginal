@@ -20,6 +20,11 @@ export const inputs = gql`
     # such as petals, champagne boxes or other enhancements.  Options
     # consist of a name, optional description and category, and a price.
     roomPaidOptions: [RoomPaidOptionInput!]
+    # Array of view options available at the hotel.  Each option
+    # defines a type of view (e.g. "City View") that can be attached
+    # to rooms and selected by guests when booking.  When omitted
+    # existing view options remain unchanged.
+    roomViewOptions: [RoomViewOptionInput!]
   }
 
   #
@@ -122,6 +127,17 @@ export const inputs = gql`
     price: Float!
   }
 
+  # Input type for specifying a view option when creating or updating
+  # a hotel or room.  Each view option has a name and may include a
+  # description and an optional price.  When no price is provided
+  # the view is considered free of charge.
+  input RoomViewOptionInput {
+    name: String!
+    description: String
+    category: String
+    price: Float
+  }
+
   """
   OpeningPeriodInput represents a date range (inclusive) when a hotel is open.
   """
@@ -151,6 +167,19 @@ export const inputs = gql`
     numberOfBeds: Int
     numberOfBathrooms: Int
     description: String
+
+    # List of paid options to associate with this room.  Each entry must
+    # correspond to a paid room option available on the hotel.  This
+    # allows room-specific add-ons such as petals or champagne boxes to
+    # be pre-configured.  Omit this field or provide an empty array
+    # when no paid options should be attached to the room.
+    paidOptions: [RoomPaidOptionInput!]
+
+    # List of view options to associate with this room.  Each entry
+    # corresponds to a view option defined on the hotel.  This allows
+    # specific rooms to offer particular views such as "City View" or
+    # "Garden View".  If omitted the room will have no view options.
+    viewOptions: [RoomViewOptionInput!]
   }
 
   input TableInput {

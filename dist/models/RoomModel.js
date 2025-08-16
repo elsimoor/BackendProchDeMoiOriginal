@@ -87,6 +87,30 @@ const roomSchema = new mongoose_1.Schema({
         type: String,
         required: false
     },
+    // Array of paid options available for this room.  Each entry stores
+    // the option's name, optional description and category, and price.
+    // This allows rooms to offer tailored add-ons derived from the
+    // hotel's roomPaidOptions.  Defaults to an empty array when no
+    // options are selected.
+    paidOptions: [
+        {
+            name: { type: String, required: true },
+            description: { type: String },
+            category: { type: String },
+            price: { type: Number, required: true },
+        },
+    ],
+    // Array of view options available for this room.  Each option
+    // includes a name and optional description, category and price.  When
+    // no view options are assigned to the room this array is empty.
+    viewOptions: [
+        {
+            name: { type: String, required: true },
+            description: { type: String },
+            category: { type: String },
+            price: { type: Number, required: false },
+        },
+    ],
     // Legacy fields to support older unique indexes on { hotel, roomNumber }.
     hotel: {
         type: mongoose_1.Schema.Types.ObjectId,

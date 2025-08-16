@@ -67,6 +67,20 @@ interface HotelDocument extends Document {
     category?: string;
     price: number;
   }[];
+
+  /**
+   * View options that guests can choose when booking a room.  Each entry
+   * defines a type of view available at the hotel, such as "City View"
+   * or "Garden View".  A view option may include an optional
+   * description and an optional price when the hotel charges for
+   * specific views.  The price field should default to 0 when views
+   * have no extra cost.
+   */
+  roomViewOptions?: {
+    name: string;
+    description?: string;
+    price?: number;
+  }[];
 }
 
 const hotelSchema = new Schema<HotelDocument>({
@@ -145,6 +159,18 @@ const hotelSchema = new Schema<HotelDocument>({
     name: String,
     description: String,
     category: String,
+    price: Number
+  }]
+  ,
+  // Array of view options that can be selected when booking a room.
+  // Each option includes a name, optional description and optional
+  // price.  This allows hotels to offer different views (e.g.
+  // "City View", "Garden View") that guests can select when
+  // completing a booking.  If a view has no additional cost the
+  // price should be set to 0 or omitted.
+  roomViewOptions: [{
+    name: String,
+    description: String,
     price: Number
   }]
 }, {

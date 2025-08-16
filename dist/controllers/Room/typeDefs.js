@@ -27,6 +27,16 @@ exports.roomTypeDef = (0, apollo_server_express_1.gql) `
     numberOfBeds: Int
     numberOfBathrooms: Int
     description: String
+
+    # List of paid options selected for this room.  Each option
+    # corresponds to a purchasable add-on defined on the parent
+    # hotel.  When no options are selected this array is empty.
+    paidOptions: [RoomPaidOption!]!
+
+    # List of view options available for this room.  Each view option
+    # corresponds to a view defined by the parent hotel.  When no
+    # view options are assigned this array is empty.
+    viewOptions: [RoomViewOption!]!
     createdAt: Date!
     updatedAt: Date!
   }

@@ -28,6 +28,11 @@ export const businessTypeDef = gql`
     # add-on such as petals, champagne boxes or other enhancements.  All
     # fields are returned so clients can display pricing information.
     roomPaidOptions: [RoomPaidOption!]!
+    # View options available at this hotel.  Each view can be
+    # associated with rooms so that guests can select a preferred
+    # view when booking.  When no view options are configured this
+    # array is empty.
+    roomViewOptions: [RoomViewOption!]!
     #
     # A featured landing card configured by the hotel manager.  This
     # optional object contains promotional details used on the public
@@ -257,6 +262,17 @@ export const businessTypeDef = gql`
   type Rating {
     average: Float!
     count: Int!
+  }
+
+  # Represents a view option that can be selected when booking a room.
+  # Each view option has a name and may include an optional
+  # description, category and price.  When no price is specified the
+  # view is assumed to be included at no extra cost.
+  type RoomViewOption {
+    name: String!
+    description: String
+    category: String
+    price: Float
   }
 
   extend type Mutation {

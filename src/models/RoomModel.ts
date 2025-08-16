@@ -27,6 +27,35 @@ interface RoomDocument extends Document {
   description?: string;
 
   /**
+   * Paid options selected for this room.  These correspond to the
+   * roomPaidOptions defined on the parent hotel and allow a room to
+   * offer specific purchasable add-ons.  Each option includes a
+   * name, optional description and category, and a price.  When no
+   * options are selected this field is an empty array.
+   */
+  paidOptions?: {
+    name: string;
+    description?: string;
+    category?: string;
+    price: number;
+  }[];
+
+  /**
+   * View options available for this room.  Each entry corresponds to
+   * a view that guests can choose when booking, derived from the
+   * hotel’s roomViewOptions.  If no views are applicable to this
+   * room the array is empty.  Optional description and price fields
+   * may be included for advanced use cases where views have
+   * additional cost.
+   */
+  viewOptions?: {
+    name: string;
+    description?: string;
+    category?: string;
+    price?: number;
+  }[];
+
+  /**
    * These legacy fields mirror hotelId and number and are used for
    * backward-compatible indexing (hotel, roomNumber). They are optional
    * in the schema and populated automatically by a pre-save hook so
@@ -102,6 +131,30 @@ const roomSchema = new Schema<RoomDocument>({
     required: false
   }
   ,
+  // Array of paid options available for this room.  Each entry stores
+  // the option's name, optional description and category, and price.
+  // This allows rooms to offer tailored add-ons derived from the
+  // hotel's roomPaidOptions.  Defaults to an empty array when no
+  // options are selected.
+  paidOptions: [
+    {
+      name: { type: String, required: true },
+      description: { type: String },
+      category: { type: String },
+      price: { type: Number, required: true },
+    },
+  ],
+  // Array of view options available for this room.  Each option
+  // includes a name and optional description, category and price.  When
+  // no view options are assigned to the room this array is empty.
+  viewOptions: [
+    {
+      name: { type: String, required: true },
+      description: { type: String },
+      category: { type: String },
+      price: { type: Number, required: false },
+    },
+  ],
   // Legacy fields to support older unique indexes on { hotel, roomNumber }.
   hotel: {
     type: Schema.Types.ObjectId,

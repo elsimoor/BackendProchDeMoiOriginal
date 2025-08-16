@@ -100,6 +100,17 @@ const hotelSchema = new mongoose_1.Schema({
             description: String,
             category: String,
             price: Number
+        }],
+    // Array of view options that can be selected when booking a room.
+    // Each option includes a name, optional description and optional
+    // price.  This allows hotels to offer different views (e.g.
+    // "City View", "Garden View") that guests can select when
+    // completing a booking.  If a view has no additional cost the
+    // price should be set to 0 or omitted.
+    roomViewOptions: [{
+            name: String,
+            description: String,
+            price: Number
         }]
 }, {
     timestamps: true
