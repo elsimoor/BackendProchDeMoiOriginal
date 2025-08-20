@@ -209,100 +209,100 @@ export const dashboardResolvers = {
         };
       });
     },
-      availability: async (_, { restaurantId, date, partySize }) => {
-        const restaurant = await RestaurantModel.findById(restaurantId).lean();
-        if (!restaurant) {
-          throw new GraphQLError('Restaurant not found.');
-        }
-
-        /**
-         * Fetch the restaurant's settings and derive a schedule for generating
-         * reservation slots.  We support two sources of opening hours:
-         *   1. The settings.horaires array configured via the dashboard.
-         *   2. The businessHours array which defines opening times per day of
-         *      the week.  This is used as a fallback when no horaires are
-         *      defined.
-         */
-        const settings: any = restaurant.settings || {};
-        let horaires: any[] = Array.isArray(settings.horaires) && settings.horaires.length > 0
-          ? settings.horaires
-          : [];
-        /*
-         * Previously, when no horaires were configured in the restaurant settings,
-         * the system attempted to derive opening hours from the separate
-         * `businessHours` array configured on the restaurant.  This caused
-         * unintended coupling between the dashboard "Business Hours" settings
-         * and the table availability logic, which should rely solely on
-         * `settings.horaires`.
-         *
-         * To ensure that the table availability page is not affected by
-         * changes to Business Hours, we no longer derive horaires from
-         * `businessHours`.  Instead, if no horaires are defined, we use a
-         * sensible default time range of 12:00 to 22:00.  Restaurants can
-         * explicitly configure their opening hours for reservations via the
-         * tables-disponibilites page (which updates settings.horaires).
-         */
-        if (horaires.length === 0) {
-          horaires = [
-            {
-              ouverture: '12:00',
-              fermeture: '22:00',
-            },
-          ];
-        }
-
-        // Determine the slot frequency in minutes; default to 30 if not provided or invalid
-        const frequency: number = typeof settings.frequenceCreneauxMinutes === 'number' && settings.frequenceCreneauxMinutes > 0
-          ? settings.frequenceCreneauxMinutes
-          : 30;
-
-        // 1. Generate all possible slots for the day
-        const allSlots: string[] = [];
-        horaires.forEach(h => {
-          if (!h.ouverture || !h.fermeture) return;
-          let current = moment.utc(`${date}T${h.ouverture}`);
-          const end = moment.utc(`${date}T${h.fermeture}`);
-          while (current.isBefore(end)) {
-            allSlots.push(current.format('HH:mm'));
-            current.add(frequency, 'minutes');
-          }
-        });
-
-        // 2. Get all confirmed or pending reservations for the day
-        const startOfDay = moment.utc(date).startOf('day').toDate();
-        const endOfDay = moment.utc(date).endOf('day').toDate();
-        const reservations = await ReservationModel.find({
-          // Match on the restaurant's own ID rather than the tenant/client ID.
-          // This aligns with how reservations are created via
-          // createReservationV2/createPrivatisationV2, which set
-          // businessId to restaurant._id.
-          businessId: restaurant._id,
-          businessType: 'restaurant',
-          date: { $gte: startOfDay, $lt: endOfDay },
-          status: { $in: ['confirmed', 'pending'] },
-        }).select('time partySize');
-
-        // 3. Calculate bookings per slot
-        const bookingsBySlot: Record<string, number> = reservations.reduce((acc: Record<string, number>, r: any) => {
-          if (r.time) {
-            acc[r.time] = (acc[r.time] || 0) + (r.partySize || 0);
-          }
-          return acc;
-        }, {});
-
-        // 4. Determine availability for each slot
-        // Use maxReservationsParCreneau or capaciteTotale as the slot capacity; default to 1 when both are undefined.
-        const slotCapacity = settings.maxReservationsParCreneau || settings.capaciteTotale || 1;
-        const availabilitySlots = allSlots.map(slot => {
-          const currentBookings = bookingsBySlot[slot] || 0;
-          // A slot is available if the current number of bookings plus the requested party size does not exceed the slot capacity.
-          // We rely on the requested party size to ensure that a large party does not exceed capacity.  This also means that if
-          // slotCapacity is 1 (default), any existing reservation will mark the slot as unavailable.
-          const available = (currentBookings + partySize) <= slotCapacity;
-          return { time: slot, available };
-        });
-        return availabilitySlots;
+    availability: async (_, { restaurantId, date, partySize }) => {
+      const restaurant = await RestaurantModel.findById(restaurantId).lean();
+      if (!restaurant) {
+        throw new GraphQLError('Restaurant not found.');
       }
+
+      /**
+       * Fetch the restaurant's settings and derive a schedule for generating
+       * reservation slots.  We support two sources of opening hours:
+       *   1. The settings.horaires array configured via the dashboard.
+       *   2. The businessHours array which defines opening times per day of
+       *      the week.  This is used as a fallback when no horaires are
+       *      defined.
+       */
+      const settings: any = restaurant.settings || {};
+      let horaires: any[] = Array.isArray(settings.horaires) && settings.horaires.length > 0
+        ? settings.horaires
+        : [];
+      /*
+       * Previously, when no horaires were configured in the restaurant settings,
+       * the system attempted to derive opening hours from the separate
+       * `businessHours` array configured on the restaurant.  This caused
+       * unintended coupling between the dashboard "Business Hours" settings
+       * and the table availability logic, which should rely solely on
+       * `settings.horaires`.
+       *
+       * To ensure that the table availability page is not affected by
+       * changes to Business Hours, we no longer derive horaires from
+       * `businessHours`.  Instead, if no horaires are defined, we use a
+       * sensible default time range of 12:00 to 22:00.  Restaurants can
+       * explicitly configure their opening hours for reservations via the
+       * tables-disponibilites page (which updates settings.horaires).
+       */
+      if (horaires.length === 0) {
+        horaires = [
+          {
+            ouverture: '12:00',
+            fermeture: '22:00',
+          },
+        ];
+      }
+
+      // Determine the slot frequency in minutes; default to 30 if not provided or invalid
+      const frequency: number = typeof settings.frequenceCreneauxMinutes === 'number' && settings.frequenceCreneauxMinutes > 0
+        ? settings.frequenceCreneauxMinutes
+        : 30;
+
+      // 1. Generate all possible slots for the day
+      const allSlots: string[] = [];
+      horaires.forEach(h => {
+        if (!h.ouverture || !h.fermeture) return;
+        let current = moment.utc(`${date}T${h.ouverture}`);
+        const end = moment.utc(`${date}T${h.fermeture}`);
+        while (current.isBefore(end)) {
+          allSlots.push(current.format('HH:mm'));
+          current.add(frequency, 'minutes');
+        }
+      });
+
+      // 2. Get all confirmed or pending reservations for the day
+      const startOfDay = moment.utc(date).startOf('day').toDate();
+      const endOfDay = moment.utc(date).endOf('day').toDate();
+      const reservations = await ReservationModel.find({
+        // Match on the restaurant's own ID rather than the tenant/client ID.
+        // This aligns with how reservations are created via
+        // createReservationV2/createPrivatisationV2, which set
+        // businessId to restaurant._id.
+        businessId: restaurant._id,
+        businessType: 'restaurant',
+        date: { $gte: startOfDay, $lt: endOfDay },
+        status: { $in: ['confirmed', 'pending'] },
+      }).select('time partySize');
+
+      // 3. Calculate bookings per slot
+      const bookingsBySlot: Record<string, number> = reservations.reduce((acc: Record<string, number>, r: any) => {
+        if (r.time) {
+          acc[r.time] = (acc[r.time] || 0) + (r.partySize || 0);
+        }
+        return acc;
+      }, {});
+
+      // 4. Determine availability for each slot
+      // Use maxReservationsParCreneau or capaciteTotale as the slot capacity; default to 1 when both are undefined.
+      const slotCapacity = settings.maxReservationsParCreneau || settings.capaciteTotale || 1;
+      const availabilitySlots = allSlots.map(slot => {
+        const currentBookings = bookingsBySlot[slot] || 0;
+        // A slot is available if the current number of bookings plus the requested party size does not exceed the slot capacity.
+        // We rely on the requested party size to ensure that a large party does not exceed capacity.  This also means that if
+        // slotCapacity is 1 (default), any existing reservation will mark the slot as unavailable.
+        const available = (currentBookings + partySize) <= slotCapacity;
+        return { time: slot, available };
+      });
+      return availabilitySlots;
+    }
   },
   Mutation: {
     updateReservationDetails: async (_, { id, input }) => {
@@ -323,10 +323,27 @@ export const dashboardResolvers = {
       };
     },
 
-    cancelReservation: async (_, { id }) => {
-      const cancelledReservation = await ReservationModel.findByIdAndUpdate(id, { status: 'cancelled' }, { new: true }).populate('businessId');
-      if (!cancelledReservation) throw new GraphQLError('Reservation not found.');
+    // cancelReservation: async (_, { id }) => {
+    //   const cancelledReservation = await ReservationModel.findByIdAndUpdate(id, { status: 'cancelled' }, { new: true }).populate('businessId');
+    //   if (!cancelledReservation) throw new GraphQLError('Reservation not found.');
 
+    //   return {
+    //     id: cancelledReservation._id.toString(),
+    //     date: moment(cancelledReservation.date).format('YYYY-MM-DD'),
+    //     heure: cancelledReservation.time,
+    //     restaurant: cancelledReservation.businessId ? (cancelledReservation.businessId as any).name : 'N/A',
+    //     personnes: cancelledReservation.partySize,
+    //     statut: cancelledReservation.status.toUpperCase(),
+    //   };
+    // }
+
+    cancelReservationAdmin: async (_, { id }) => {
+      const cancelledReservation = await ReservationModel.findByIdAndUpdate(
+        id,
+        { status: 'cancelled' },
+        { new: true }
+      ).populate('businessId');
+      if (!cancelledReservation) throw new GraphQLError('Reservation not found.');
       return {
         id: cancelledReservation._id.toString(),
         date: moment(cancelledReservation.date).format('YYYY-MM-DD'),
@@ -336,6 +353,7 @@ export const dashboardResolvers = {
         statut: cancelledReservation.status.toUpperCase(),
       };
     }
+
   },
   ReservationInfo: {
     restaurant: async ({ restaurant }, _, { Loaders }) => {

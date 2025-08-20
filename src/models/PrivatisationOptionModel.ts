@@ -31,6 +31,15 @@ interface PrivatisationOptionDocument extends Document {
    * Conditions générales de réservation ou d’utilisation pour la privatisation.
    */
   conditions?: string;
+
+  /**
+   * URL to a file (such as a Word document) containing additional
+   * requirements or specifications for this privatisation option.
+   * When provided, this should point to a file stored externally
+   * (e.g. in cloud storage).  It is optional and omitted when no
+   * supplementary document is attached.
+   */
+  fileUrl?: string;
 }
 
 // Schema definition
@@ -78,6 +87,13 @@ const privatisationOptionSchema = new Schema<PrivatisationOptionDocument>({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Restaurant',
     required: true
+  }
+  ,
+  // Optional URL pointing to an uploaded document (e.g. Word file) with
+  // full explanations of the requirements for this privatisation.  When
+  // undefined, no supplementary file is associated with the option.
+  fileUrl: {
+    type: String
   }
 }, {
   timestamps: true

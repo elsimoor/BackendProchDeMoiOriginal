@@ -388,12 +388,23 @@ export const businessResolvers = {
         businessType: "restaurant",
         partySize: partySize,
         time: input.heure,
-        status: "confirmed",
+        // Set status and paymentStatus to pending until payment is completed.
+        status: "pending",
+        paymentStatus: "pending",
         // Mark reservations created from the user-facing UI with a
         // specific source so that dashboard metrics can distinguish
         // them from bookings entered via the admin, phone, etc.
         source: 'new-ui',
       });
+      // Persist the chosen payment method and any reservation file URL
+      // provided by the client.  These fields may be undefined
+      // depending on whether the front-end asked for them.
+      if (input.paymentMethod) {
+        (reservation as any).paymentMethod = input.paymentMethod;
+      }
+      if (input.reservationFileUrl) {
+        (reservation as any).reservationFileUrl = input.reservationFileUrl;
+      }
       // Compute a basic total amount for the booking based on the number of guests.
       // If the restaurant has defined time-based pricing in its settings.horaires,
       // select the applicable price; otherwise default to 75 per guest.
@@ -423,28 +434,7 @@ export const businessResolvers = {
       const totalAmount = partySize * pricePerGuest;
       reservation.totalAmount = totalAmount;
       await reservation.save();
-      // Automatically create an invoice for the reservation.  Each invoice
-      // contains a single line item referencing the reservation ID and its
-      // computed total amount.
-      try {
-        const items = [
-          {
-            description: `Reservation ${reservation._id.toString()}`,
-            price: totalAmount,
-            quantity: 1,
-            total: totalAmount,
-          },
-        ];
-        const invoice = new (require('../../models/InvoiceModel').default)({
-          reservationId: reservation._id,
-          businessId: reservation.businessId,
-          items,
-          total: totalAmount,
-        });
-        await invoice.save();
-      } catch (err) {
-        console.error('Failed to create invoice for restaurant reservation', err);
-      }
+      // Do not create an invoice until the reservation is confirmed and paid.
       return reservation;
     },
 
@@ -465,7 +455,9 @@ export const businessResolvers = {
         partySize: partySize,
         time: input.heure,
         duration: input.dureeHeures,
-        status: "confirmed",
+        // Set status and paymentStatus to pending until the user completes payment.
+        status: "pending",
+        paymentStatus: "pending",
         // Tag privatisations from the user-facing UI to ensure they
         // contribute to dashboard statistics.  Without this property
         // the default source would be 'website' which the dashboard
@@ -474,31 +466,20 @@ export const businessResolvers = {
         notes: `Privatisation: ${privatisationData.type} - ${privatisationData.espace}, Menu: ${privatisationData.menu}`,
         specialRequests: `Privatisation event for ${partySize} guests.`
       });
+
+      // Persist chosen payment method and any attached file URL
+      if (input.paymentMethod) {
+        (reservation as any).paymentMethod = input.paymentMethod;
+      }
+      if (input.reservationFileUrl) {
+        (reservation as any).reservationFileUrl = input.reservationFileUrl;
+      }
       // Compute a default total amount for a privatisation.  Use a higher
       // rate per guest to reflect the premium nature of privatisations.
       const totalAmount = partySize * 100; // 100 per guest for privatisations
       reservation.totalAmount = totalAmount;
       await reservation.save();
-      // Create an invoice for the privatisation.
-      try {
-        const items = [
-          {
-            description: `Privatisation ${reservation._id.toString()}`,
-            price: totalAmount,
-            quantity: 1,
-            total: totalAmount,
-          },
-        ];
-        const invoice = new (require('../../models/InvoiceModel').default)({
-          reservationId: reservation._id,
-          businessId: reservation.businessId,
-          items,
-          total: totalAmount,
-        });
-        await invoice.save();
-      } catch (err) {
-        console.error('Failed to create invoice for privatisation', err);
-      }
+      // Do not create an invoice until payment has been confirmed.
       return reservation;
     }
   }

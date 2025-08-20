@@ -35,7 +35,6 @@ const startServer = async (app: Application) => {
     const webhookSecret = "we_1Rw3CkFTpuSblutlarxCPoUG"
     if (stripeSecret && webhookSecret) {
       
-      
       const stripe: Stripe = new Stripe(stripeSecret, { apiVersion: '2022-11-15' });
       // Stripe requires the raw body to construct the event
       app.post('/stripe/webhook', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {

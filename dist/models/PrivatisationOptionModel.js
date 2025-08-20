@@ -69,6 +69,12 @@ const privatisationOptionSchema = new mongoose_1.Schema({
         type: mongoose_1.default.Schema.Types.ObjectId,
         ref: 'Restaurant',
         required: true
+    },
+    // Optional URL pointing to an uploaded document (e.g. Word file) with
+    // full explanations of the requirements for this privatisation.  When
+    // undefined, no supplementary file is associated with the option.
+    fileUrl: {
+        type: String
     }
 }, {
     timestamps: true

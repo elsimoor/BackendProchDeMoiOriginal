@@ -90,6 +90,19 @@ const reservationSchema = new mongoose_1.Schema({
         type: String,
         enum: ['website', 'phone', 'walk-in', 'admin', 'new-ui'],
         default: 'website'
+    },
+    // URL of an uploaded reservation file (e.g. Word document) with
+    // detailed requirements.  This field is optional and remains
+    // undefined when no file is attached to the reservation.
+    reservationFileUrl: {
+        type: String
+    },
+    // Name of the payment method selected by the client.  This
+    // property stores a simple string (e.g. "Credit Card", "Cash")
+    // referencing one of the restaurant's paymentMethods.  When no
+    // payment method is provided this field remains undefined.
+    paymentMethod: {
+        type: String
     }
 }, {
     timestamps: true

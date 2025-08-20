@@ -60,6 +60,15 @@ interface RestaurantDocument extends Document {
      * et combien de tables de cette taille sont disponibles.
      */
     customTables: { taille: number; nombre: number }[];
+
+    /**
+     * Dress code enforced by the restaurant.  Valid values include
+     * "casual", "smart-casual", "business" and "formal".  When
+     * unspecified the default is "smart-casual".  This field is used
+     * by the front‑end to communicate expectations to guests when
+     * they book or visit.
+     */
+    dressCode: string;
   };
   businessHours: BusinessHours[];
   cuisine: string[];
@@ -72,6 +81,21 @@ interface RestaurantDocument extends Document {
     count: number;
   };
   isActive: boolean;
+
+  /**
+   * Payment methods accepted by the restaurant.  Each entry defines
+   * the payment method name, whether it is enabled, an optional
+   * processing fee and an optional ISO date on which the method
+   * should be exclusively active (for example, to enable special
+   * payment rules on New Year’s Eve).  When this array is empty or
+   * undefined, default payment processing applies.
+   */
+  paymentMethods?: {
+    name: string;
+    enabled: boolean;
+    processingFee: number;
+    specialDate?: string;
+  }[];
 }
 
 const restaurantSchema = new Schema<RestaurantDocument>({
@@ -144,6 +168,9 @@ const restaurantSchema = new Schema<RestaurantDocument>({
           nombre: { type: Number }
         }
       ]
+      ,
+      // Dress code enforced by the restaurant.  Defaults to "smart-casual".
+      dressCode: { type: String, default: 'smart-casual' }
   },
   businessHours: [{
     day: {
@@ -182,6 +209,19 @@ const restaurantSchema = new Schema<RestaurantDocument>({
     type: Boolean,
     default: false
   }
+  ,
+  // Payment methods accepted by the restaurant.  Each entry defines the
+  // method name, whether it is enabled, an optional processing fee and
+  // an optional ISO date on which the method is specially enabled.  When
+  // not provided, paymentMethods defaults to an empty array.
+  paymentMethods: [
+    {
+      name: String,
+      enabled: { type: Boolean, default: true },
+      processingFee: { type: Number, default: 0 },
+      specialDate: String
+    }
+  ]
 }, {
   timestamps: true
 });

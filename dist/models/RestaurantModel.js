@@ -92,7 +92,9 @@ const restaurantSchema = new mongoose_1.Schema({
                 taille: { type: Number },
                 nombre: { type: Number }
             }
-        ]
+        ],
+        // Dress code enforced by the restaurant.  Defaults to "smart-casual".
+        dressCode: { type: String, default: 'smart-casual' }
     },
     businessHours: [{
             day: {
@@ -130,7 +132,19 @@ const restaurantSchema = new mongoose_1.Schema({
     isActive: {
         type: Boolean,
         default: false
-    }
+    },
+    // Payment methods accepted by the restaurant.  Each entry defines the
+    // method name, whether it is enabled, an optional processing fee and
+    // an optional ISO date on which the method is specially enabled.  When
+    // not provided, paymentMethods defaults to an empty array.
+    paymentMethods: [
+        {
+            name: String,
+            enabled: { type: Boolean, default: true },
+            processingFee: { type: Number, default: 0 },
+            specialDate: String
+        }
+    ]
 }, {
     timestamps: true
 });

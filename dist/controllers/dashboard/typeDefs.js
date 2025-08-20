@@ -43,7 +43,8 @@ exports.dashboardTypeDef = (0, apollo_server_express_1.gql) `
 
   extend type Mutation {
       updateReservationDetails(id: ID!, input: UpdateReservationInput!): ReservationInfo
-      cancelReservation(id: ID!): ReservationInfo
+      # cancelReservation(id: ID!): ReservationInfo
+      cancelReservationAdmin(id: ID!): ReservationInfo
   }
 `;
 //# sourceMappingURL=typeDefs.js.map

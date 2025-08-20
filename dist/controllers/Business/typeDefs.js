@@ -79,6 +79,9 @@ exports.businessTypeDef = (0, apollo_server_express_1.gql) `
     isActive: Boolean!
     createdAt: Date!
     updatedAt: Date!
+    # Payment methods accepted by the restaurant.  When omitted the
+    # restaurant falls back to default payment behaviour.
+    paymentMethods: [PaymentMethod!]
   }
 
   type Salon {
@@ -142,6 +145,10 @@ exports.businessTypeDef = (0, apollo_server_express_1.gql) `
     joursOuverts: [String!]
     # Tables personnalisées pour définir des tailles de table non standard.
     customTables: [TableSize!]
+    # Dress code enforced by the restaurant (e.g. "casual",
+    # "smart-casual", "business", "formal").  When omitted the
+    # default of "smart-casual" applies.
+    dressCode: String
   }
 
   type Horaire {
@@ -188,6 +195,8 @@ exports.businessTypeDef = (0, apollo_server_express_1.gql) `
     fermetures: [ClosurePeriodInput!]
     joursOuverts: [String!]
     customTables: [TableSizeInput!]
+    # Optional dress code.  If omitted the existing dress code will be retained.
+    dressCode: String
   }
 
   input HoraireInput {
@@ -275,6 +284,32 @@ exports.businessTypeDef = (0, apollo_server_express_1.gql) `
     description: String
     category: String
     price: Float
+  }
+
+  """
+  Represents a method of payment that a restaurant can accept.  Each
+  method includes a name, an enabled flag indicating whether it is
+  currently accepted, an optional processing fee (in the local currency)
+  and an optional ISO date when the method is exclusively enabled (for
+  example, to support special payment options on New Year's Eve).
+  """
+  type PaymentMethod {
+    name: String!
+    enabled: Boolean!
+    processingFee: Float
+    specialDate: String
+  }
+
+  """
+  Input type for specifying a payment method when creating or updating
+  a restaurant.  Each payment method must include a name and enabled
+  flag.  Processing fee and specialDate are optional.
+  """
+  input PaymentMethodInput {
+    name: String!
+    enabled: Boolean!
+    processingFee: Float
+    specialDate: String
   }
 
   extend type Mutation {

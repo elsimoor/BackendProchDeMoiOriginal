@@ -86,14 +86,15 @@ export const reservationResolvers = {
       }
       const reservation = new ReservationModel(input);
       await reservation.save();
-      // Automatically create an invoice for reservations across all modules.
-      // Whenever a reservation has a businessId we generate an invoice.  If
-      // no totalAmount is provided (as is often the case for restaurant
-      // bookings) we default to zero.  Each invoice contains a single
-      // line item referencing the reservation ID and its amount.  This
-      // applies to hotel, restaurant and salon bookings.
+      /*
+       * Only generate an invoice when a reservation has been paid.  The
+       * paymentStatus defaults to "pending" and will be updated to
+       * "paid" via the confirmReservation mutation once the Stripe
+       * checkout succeeds.  This prevents invoices from being
+       * created prematurely for reservations that are never paid.
+       */
       try {
-        if (reservation.businessId) {
+        if (reservation.businessId && reservation.paymentStatus === 'paid') {
           const amount = reservation.totalAmount ?? 0;
           const items = [
             {
@@ -115,6 +116,72 @@ export const reservationResolvers = {
         console.error('Failed to create invoice for reservation', err);
       }
       return ReservationModel.findById(reservation._id)
+    },
+
+    /**
+     * Confirm a pending reservation after successful payment.  This
+     * mutation updates the status to "confirmed" and the paymentStatus
+     * to "paid".  An invoice is generated if one does not already
+     * exist.  If the reservation does not exist an error is thrown.
+     */
+    confirmReservation: async (
+      _parent,
+      { id }: { id: string },
+    ) => {
+      const reservation = await ReservationModel.findById(id);
+      if (!reservation) {
+        throw new Error('Reservation not found');
+      }
+      reservation.status = 'confirmed';
+      reservation.paymentStatus = 'paid';
+      await reservation.save();
+      try {
+        // Generate an invoice only if one does not already exist.
+        const existing = await InvoiceModel.findOne({ reservationId: reservation._id });
+        if (!existing && reservation.businessId) {
+          const amount = reservation.totalAmount ?? 0;
+          const items = [
+            {
+              description: `Reservation ${reservation._id.toString()}`,
+              price: amount,
+              quantity: 1,
+              total: amount,
+            },
+          ];
+          const invoice = new InvoiceModel({
+            reservationId: reservation._id,
+            businessId: reservation.businessId,
+            items,
+            total: amount,
+          });
+          await invoice.save();
+        }
+      } catch (err) {
+        console.error('Failed to create invoice during confirmation', err);
+      }
+      return reservation;
+    },
+
+    /**
+     * Cancel a pending reservation if the user aborts the Stripe
+     * checkout.  Removing the reservation ensures no record or
+     * invoice remains for unpaid bookings.  Returns true when a
+     * reservation was deleted and false if no reservation was found.
+     */
+    cancelReservation: async (
+      _parent,
+      { id }: { id: string },
+    ): Promise<boolean> => {
+      const reservation = await ReservationModel.findByIdAndDelete(id);
+      if (reservation) {
+        try {
+          await InvoiceModel.deleteMany({ reservationId: reservation._id });
+        } catch (err) {
+          console.error('Failed to remove invoice during cancellation', err);
+        }
+        return true;
+      }
+      return false;
     },
 
     updateReservation: async (

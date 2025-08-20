@@ -41,6 +41,7 @@ export const dashboardTypeDef = gql`
 
   extend type Mutation {
       updateReservationDetails(id: ID!, input: UpdateReservationInput!): ReservationInfo
-      cancelReservation(id: ID!): ReservationInfo
+      # cancelReservation(id: ID!): ReservationInfo
+      cancelReservationAdmin(id: ID!): ReservationInfo
   }
 `;

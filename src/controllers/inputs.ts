@@ -49,6 +49,10 @@ export const inputs = gql`
     features: [String!]
     policies: [PolicyInput!]
     images: [String!]
+    # Payment methods accepted by the restaurant.  When omitted the existing
+    # payment methods remain unchanged.  Each entry defines a name, enabled
+    # flag, optional processing fee and an optional special activation date.
+    paymentMethods: [PaymentMethodInput!]
   }
 
   input SalonInput {
@@ -108,6 +112,7 @@ export const inputs = gql`
     category: String
     available: Boolean!
   }
+
 
   input PolicyInput {
     title: String!
@@ -285,6 +290,10 @@ export const inputs = gql`
     notes: String
     specialRequests: String
     source: String
+    # Optional URL to a file (e.g. Word document) containing detailed
+    # requirements for the reservation.  When omitted the reservation
+    # has no associated file.
+    reservationFileUrl: String
   }
 
   input CustomerInfoInput {

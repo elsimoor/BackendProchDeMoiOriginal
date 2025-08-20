@@ -35,6 +35,26 @@ interface ReservationDocument extends Document {
   specialRequests?: string;
   reminderSent: boolean;
   source: 'website' | 'phone' | 'walk-in' | 'admin';
+
+  /**
+   * Optional URL pointing to a reservation details file (e.g. a
+   * Word document) that contains additional requirements or
+   * specifications provided by the client.  When present this URL
+   * should point to a file stored in an external storage system.  If
+   * no reservation file is provided this property is undefined.
+   */
+  reservationFileUrl?: string;
+
+  /**
+   * The name of the payment method chosen by the client when
+   * creating the reservation.  This corresponds to one of the
+   * restaurant’s configured payment methods (e.g. "Credit Card",
+   * "Cash", "PayPal").  When undefined the default payment method
+   * applies (typically card).  Adding this field enables the
+   * front‑end user to select how they intend to pay for their
+   * booking.
+   */
+  paymentMethod?: string;
 }
 
 const reservationSchema = new Schema<ReservationDocument>({
@@ -104,6 +124,21 @@ const reservationSchema = new Schema<ReservationDocument>({
     type: String,
     enum: ['website', 'phone', 'walk-in', 'admin', 'new-ui'],
     default: 'website'
+  }
+  ,
+  // URL of an uploaded reservation file (e.g. Word document) with
+  // detailed requirements.  This field is optional and remains
+  // undefined when no file is attached to the reservation.
+  reservationFileUrl: {
+    type: String
+  }
+  ,
+  // Name of the payment method selected by the client.  This
+  // property stores a simple string (e.g. "Credit Card", "Cash")
+  // referencing one of the restaurant's paymentMethods.  When no
+  // payment method is provided this field remains undefined.
+  paymentMethod: {
+    type: String
   }
 }, {
   timestamps: true

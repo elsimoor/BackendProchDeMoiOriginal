@@ -297,7 +297,19 @@ exports.dashboardResolvers = {
                 statut: updatedReservation.status.toUpperCase(),
             };
         },
-        cancelReservation: async (_, { id }) => {
+        // cancelReservation: async (_, { id }) => {
+        //   const cancelledReservation = await ReservationModel.findByIdAndUpdate(id, { status: 'cancelled' }, { new: true }).populate('businessId');
+        //   if (!cancelledReservation) throw new GraphQLError('Reservation not found.');
+        //   return {
+        //     id: cancelledReservation._id.toString(),
+        //     date: moment(cancelledReservation.date).format('YYYY-MM-DD'),
+        //     heure: cancelledReservation.time,
+        //     restaurant: cancelledReservation.businessId ? (cancelledReservation.businessId as any).name : 'N/A',
+        //     personnes: cancelledReservation.partySize,
+        //     statut: cancelledReservation.status.toUpperCase(),
+        //   };
+        // }
+        cancelReservationAdmin: async (_, { id }) => {
             const cancelledReservation = await ReservationModel_1.default.findByIdAndUpdate(id, { status: 'cancelled' }, { new: true }).populate('businessId');
             if (!cancelledReservation)
                 throw new graphql_1.GraphQLError('Reservation not found.');

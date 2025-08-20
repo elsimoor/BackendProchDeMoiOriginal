@@ -43,6 +43,15 @@ exports.reservationTypeDef = (0, apollo_server_express_1.gql) `
     specialRequests: String
     reminderSent: Boolean!
     source: String!
+    # The payment method chosen by the client when the reservation
+    # was created.  This corresponds to the  field of one of
+    # the restaurant’s paymentMethods.  When null, the default
+    # payment method applies (typically card).
+    paymentMethod: String
+    # URL of an uploaded reservation document (e.g. Word file) that
+    # contains additional requirements or explanations for the
+    # reservation.  When null no supplementary document is attached.
+    reservationFileUrl: String
     createdAt: Date!
     updatedAt: Date!
   }
@@ -61,6 +70,12 @@ exports.reservationTypeDef = (0, apollo_server_express_1.gql) `
     source: String!
     restaurantId: ID!
     customerInfo: CustomerInfoInput!
+    # Optional payment method selected by the client.  Must match one
+    # of the restaurant’s configured paymentMethods.  When absent
+    # the default payment method is used.
+    paymentMethod: String
+    # Optional URL for a reservation file with additional details.
+    reservationFileUrl: String
   }
 
   input CreatePrivatisationV2Input {
@@ -74,6 +89,18 @@ exports.reservationTypeDef = (0, apollo_server_express_1.gql) `
     source: String!
     restaurantId: ID!
     customerInfo: CustomerInfoInput!
+    paymentMethod: String
+    reservationFileUrl: String
+  }
+
+  # Mutations to confirm or cancel a reservation.  confirmReservation
+  # should be called after a successful Stripe payment to finalise
+  # the booking and generate an invoice.  cancelReservation
+  # removes the reservation and any invoice when the payment is
+  # aborted.
+  extend type Mutation {
+    confirmReservation(id: ID!): Reservation!
+    cancelReservation(id: ID!): Boolean!
   }
 `;
 //# sourceMappingURL=typeDefs.js.map

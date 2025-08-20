@@ -15,6 +15,11 @@ export const privatisationTypeDef = gql`
     tarif: Float
     # Conditions générales applicables à cette option de privatisation
     conditions: String
+    # URL to a supplementary document (e.g. Word file) that provides
+    # full explanations of requirements such as locations and
+    # equipment.  When null no document is associated with this
+    # privatisation option.
+    fileUrl: String
     restaurantId: ID!
     createdAt: Date!
     updatedAt: Date!
@@ -31,6 +36,9 @@ export const privatisationTypeDef = gql`
     tarif: Float
     conditions: String
     restaurantId: ID!
+    # Optional URL to a supplementary document providing detailed
+    # requirements (e.g. Word file).
+    fileUrl: String
   }
 
   input UpdatePrivatisationOptionInput {
@@ -43,6 +51,9 @@ export const privatisationTypeDef = gql`
     menusDetails: [MenuDetailInput!]
     tarif: Float
     conditions: String
+    # Optional URL to a supplementary document providing detailed
+    # requirements (e.g. Word file).
+    fileUrl: String
   }
 
   extend type Query {

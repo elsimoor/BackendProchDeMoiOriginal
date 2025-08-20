@@ -127,6 +127,11 @@ exports.paymentResolvers = {
             // records when the payment completes.
             const stripe = getStripe();
             const unitAmount = Math.round(amount * 100);
+            // Append the session_id parameter to the success URL.  If
+            // successUrl already contains a query string (e.g. because a
+            // reservationId was provided) then append with '&'; otherwise use '?'.
+            const separator = successUrl.includes('?') ? '&' : '?';
+            const successUrlWithSession = `${successUrl}${separator}session_id={CHECKOUT_SESSION_ID}`;
             const session = await stripe.checkout.sessions.create({
                 payment_method_types: ['card'],
                 line_items: [
@@ -143,7 +148,7 @@ exports.paymentResolvers = {
                     },
                 ],
                 mode: 'payment',
-                success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+                success_url: successUrlWithSession,
                 cancel_url: cancelUrl,
                 metadata: {
                     paymentId: paymentRecord._id.toString(),
