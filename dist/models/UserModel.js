@@ -82,7 +82,23 @@ const userSchema = new mongoose_1.Schema({
         },
         language: { type: String, default: 'en' },
         timezone: { type: String, default: 'UTC' }
-    }
+    },
+    // Additional services managed by the user.  Each object stores
+    // the type of business and its ObjectId.  We do not enforce
+    // uniqueness at the schema level because the appendUserService
+    // resolver checks for duplicates before pushing.
+    services: [
+        {
+            businessType: {
+                type: String,
+                enum: ['hotel', 'restaurant', 'salon'],
+            },
+            businessId: {
+                type: mongoose_1.Schema.Types.ObjectId,
+                refPath: 'services.businessType',
+            },
+        },
+    ]
 }, {
     timestamps: true
 });

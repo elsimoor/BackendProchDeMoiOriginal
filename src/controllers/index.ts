@@ -6,6 +6,7 @@ import { reservationResolvers, reservationTypeDef } from "./reservation";
 import { roomResolvers, roomTypeDef } from "./Room";
 import { serviceResolvers, serviceTypeDef } from "./service";
 import { staffResolvers, staffTypeDef } from "./Staff";
+import { shiftResolvers, shiftTypeDef } from "./Shift";
 import { tableResolvers, tableTypeDefs } from "./Table";
 import { userResolvers, userTypeDefs } from "./User";
 
@@ -48,6 +49,7 @@ const resolvers = [
   roomResolvers,
   serviceResolvers,
   staffResolvers,
+  shiftResolvers,
   tableResolvers,
   clientResolvers,
   privatisationResolvers,
@@ -74,6 +76,7 @@ const typeDefs = [
   roomTypeDef,
   serviceTypeDef,
   staffTypeDef,
+  shiftTypeDef,
   tableTypeDefs,
   clientTypeDefs,
   privatisationTypeDef,

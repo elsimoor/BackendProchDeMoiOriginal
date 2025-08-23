@@ -9,6 +9,7 @@ const reservation_1 = require("./reservation");
 const Room_1 = require("./Room");
 const service_1 = require("./service");
 const Staff_1 = require("./Staff");
+const Shift_1 = require("./Shift");
 const Table_1 = require("./Table");
 const User_1 = require("./User");
 // Import the room type controller
@@ -41,6 +42,7 @@ const resolvers = [
     Room_1.roomResolvers,
     service_1.serviceResolvers,
     Staff_1.staffResolvers,
+    Shift_1.shiftResolvers,
     Table_1.tableResolvers,
     Client_1.clientResolvers,
     privatisation_1.privatisationResolvers,
@@ -63,6 +65,7 @@ const typeDefs = [
     Room_1.roomTypeDef,
     service_1.serviceTypeDef,
     Staff_1.staffTypeDef,
+    Shift_1.shiftTypeDef,
     Table_1.tableTypeDefs,
     Client_1.clientTypeDefs,
     privatisation_1.privatisationTypeDef,

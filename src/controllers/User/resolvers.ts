@@ -162,6 +162,44 @@ export const userResolvers = {
       );
       return updatedUser;
     }
+
+    ,
+
+    /**
+     * Append a new service to an existing user.  This mutation
+     * enables a manager to add additional businesses (e.g. a
+     * restaurant or salon) without overwriting the primary
+     * `businessId`/`businessType`.  The resolver checks for an
+     * existing association before pushing a new entry onto the
+     * services array.  Returns the updated user.
+     */
+    appendUserService: async (
+      _parent: any,
+      { input }: { input: { userId: string; businessId: string; businessType: string } },
+      _ctx: Context
+    ) => {
+      const { userId, businessId, businessType } = input;
+      const user = await UserModel.findById(userId);
+      if (!user) {
+        throw new UserInputError('User not found');
+      }
+      // Initialize services array if undefined
+      if (!Array.isArray((user as any).services)) {
+        (user as any).services = [];
+      }
+      // Avoid duplicates
+      const exists = (user as any).services.some((s: any) => {
+        return (
+          (s.businessId?.toString?.() || '') === businessId &&
+          s.businessType === businessType
+        );
+      });
+      if (!exists) {
+        (user as any).services.push({ businessId, businessType });
+        await user.save();
+      }
+      return user;
+    }
   }
 };
 

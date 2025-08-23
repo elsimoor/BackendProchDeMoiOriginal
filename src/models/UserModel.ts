@@ -22,6 +22,23 @@ interface IUser extends Document {
     language: string;
     timezone: string;
   };
+
+  /**
+   * A list of additional services managed by the user.  Each entry
+   * associates the user with a business identifier and its type.  This
+   * allows a single account to manage multiple business entities
+   * (e.g. a hotel and a restaurant) without overriding the primary
+   * businessId/businessType fields.  The `isActive` flag on each
+   * service is not stored here; instead the business’s own `isActive`
+   * field should be queried to determine whether the dashboard
+   * should be accessible.  When adding a service via the
+   * `appendUserService` mutation the new entry will be pushed onto
+   * this array.
+   */
+  services?: {
+    businessType: 'hotel' | 'restaurant' | 'salon';
+    businessId: mongoose.Types.ObjectId;
+  }[];
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -79,7 +96,23 @@ const userSchema = new Schema<IUser>({
     },
     language: { type: String, default: 'en' },
     timezone: { type: String, default: 'UTC' }
-  }
+  },
+  // Additional services managed by the user.  Each object stores
+  // the type of business and its ObjectId.  We do not enforce
+  // uniqueness at the schema level because the appendUserService
+  // resolver checks for duplicates before pushing.
+  services: [
+    {
+      businessType: {
+        type: String,
+        enum: ['hotel', 'restaurant', 'salon'],
+      },
+      businessId: {
+        type: Schema.Types.ObjectId,
+        refPath: 'services.businessType',
+      },
+    },
+  ]
 }, {
   timestamps: true
 });

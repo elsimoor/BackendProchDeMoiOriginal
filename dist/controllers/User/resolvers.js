@@ -95,6 +95,35 @@ exports.userResolvers = {
             // updated.
             const updatedUser = await UserModel_1.default.findByIdAndUpdate(id, { $set: input }, { new: true });
             return updatedUser;
+        },
+        /**
+         * Append a new service to an existing user.  This mutation
+         * enables a manager to add additional businesses (e.g. a
+         * restaurant or salon) without overwriting the primary
+         * `businessId`/`businessType`.  The resolver checks for an
+         * existing association before pushing a new entry onto the
+         * services array.  Returns the updated user.
+         */
+        appendUserService: async (_parent, { input }, _ctx) => {
+            const { userId, businessId, businessType } = input;
+            const user = await UserModel_1.default.findById(userId);
+            if (!user) {
+                throw new apollo_server_express_1.UserInputError('User not found');
+            }
+            // Initialize services array if undefined
+            if (!Array.isArray(user.services)) {
+                user.services = [];
+            }
+            // Avoid duplicates
+            const exists = user.services.some((s) => {
+                return ((s.businessId?.toString?.() || '') === businessId &&
+                    s.businessType === businessType);
+            });
+            if (!exists) {
+                user.services.push({ businessId, businessType });
+                await user.save();
+            }
+            return user;
         }
     }
 };

@@ -76,7 +76,27 @@ exports.businessResolvers = {
             return hotel;
         },
         updateHotel: async (_parent, { id, input }, _ctx) => {
-            return HotelModel_1.default.findByIdAndUpdate(id, input, { new: true });
+            // Find the existing hotel by ID.  If no document is found, throw
+            // a GraphQL error instead of returning null so that the
+            // non‑nullable return type is respected and clients receive a
+            // descriptive error message.  If the hotel exists, merge the
+            // provided input into the document and save it.  The updated
+            // document is then returned to the caller.
+            const hotel = await HotelModel_1.default.findById(id);
+            if (!hotel) {
+                throw new Error('Hotel not found');
+            }
+            // Merge only provided fields from the input into the existing
+            // document.  We iterate over the keys of the input and assign
+            // them individually to avoid inadvertently overwriting
+            // unmapped subdocuments or arrays.  Mongoose will cast and
+            // validate types automatically when saving.
+            Object.keys(input).forEach((key) => {
+                // @ts-ignore - input is a generic type; dynamic assignment
+                hotel[key] = input[key];
+            });
+            await hotel.save();
+            return hotel;
         },
         deleteHotel: async (_parent, { id }, _ctx) => {
             await HotelModel_1.default.findByIdAndUpdate(id, { isActive: false });
