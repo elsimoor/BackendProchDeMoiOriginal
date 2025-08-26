@@ -77,7 +77,13 @@ export const userTypeDefs = gql`
     firstName: String!
     email: String!
     password: String!
-    businessType: String!
+    # Optional business type.  When provided, the user will be
+    # registered as a manager for the specified business and their
+    # account will remain inactive until an administrator approves
+    # the business.  When omitted, the user is registered as a
+    # system administrator with no associated business and is
+    # activated immediately.
+    businessType: String
   }
 
   input LoginInput {

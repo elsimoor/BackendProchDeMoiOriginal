@@ -99,5 +99,11 @@ export const reservationTypeDef = gql`
   extend type Mutation {
     confirmReservation(id: ID!): Reservation!
     cancelReservation(id: ID!): Boolean!
+
+    # Generate a PDF document summarising a reservation.  The
+    # returned value is a base64‑encoded representation of the PDF
+    # which can be downloaded on the client side.  If the
+    # reservation does not exist an error is thrown.
+    generateReservationPdf(id: ID!): String!
   }
 `;

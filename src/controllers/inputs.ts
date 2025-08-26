@@ -143,6 +143,35 @@ export const inputs = gql`
     price: Float
   }
 
+  # Input type for defining a monthly pricing session for a room.
+  # Each session specifies a start and end month (1–12) and a
+  # nightly price.  The hotel manager can provide multiple
+  # sessions to implement seasonal pricing.  When omitted or when
+  # the array is empty the room's base price applies for all
+  # months.  Example: to charge 200 dh per night from January to
+  # May and 600 dh from June to December, pass two objects:
+  # { startMonth: 1, endMonth: 5, price: 200 }, { startMonth: 6,
+  # endMonth: 12, price: 600 }.
+  input RoomMonthlyPriceInput {
+    startMonth: Int!
+    endMonth: Int!
+    price: Float!
+  }
+
+  # Input type for defining a special date-range pricing session for a room.
+  # Each session specifies a start and end month/day (1–12 for the month
+  # and 1–31 for the day) and a nightly price.  Date ranges may span
+  # across the year boundary.  When omitted or when the array is empty
+  # the room's base price (and monthly pricing if defined) applies for
+  # all days.
+  input RoomSpecialPriceInput {
+    startMonth: Int!
+    startDay: Int!
+    endMonth: Int!
+    endDay: Int!
+    price: Float!
+  }
+
   """
   OpeningPeriodInput represents a date range (inclusive) when a hotel is open.
   """
@@ -185,6 +214,20 @@ export const inputs = gql`
     # specific rooms to offer particular views such as "City View" or
     # "Garden View".  If omitted the room will have no view options.
     viewOptions: [RoomViewOptionInput!]
+
+    # Optional array of monthly pricing sessions for this room.  Each
+    # entry defines a continuous range of months and the nightly
+    # rate to apply during that period.  When provided this
+    # overrides the base price for the specified months.  When
+    # omitted or when the array is empty the base price applies
+    # year‑round.
+    monthlyPrices: [RoomMonthlyPriceInput!]
+
+    # Array of special date-range pricing sessions.  Each object
+    # defines a start month/day and end month/day along with a
+    # nightly price to apply during that period.  When omitted or
+    # empty the base price (and monthlyPrices) applies to all days.
+    specialPrices: [RoomSpecialPriceInput!]
   }
 
   input TableInput {

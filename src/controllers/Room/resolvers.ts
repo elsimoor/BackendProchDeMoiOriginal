@@ -63,8 +63,14 @@ export const roomResolvers: IResolvers<unknown, Context> = {
         return [];
       }
       const rooms = await RoomModel.find({ hotelId, isActive: true, status: 'available', capacity: { $gte: totalGuests } });
+
+      console.log("rooms:", rooms);
       if (!rooms || rooms.length === 0) return [];
-      const reservations = await ReservationModel.find({ businessId: hotelId, businessType: 'hotel' });
+      const reservations = await ReservationModel.find({
+        businessId: hotelId,
+        status: { $in: ['pending', 'confirmed'] },
+        businessType: 'hotel'
+      });
       return rooms.filter((room: any) => {
         const conflict = reservations.some((res: any) => {
           if (!res.roomId) return false;
@@ -91,8 +97,8 @@ export const roomResolvers: IResolvers<unknown, Context> = {
       console.log(`Checking available rooms for hotel ${hotelId} from ${checkIn} to ${checkOut} for ${totalGuests} guests`);
       const rooms = await RoomModel.find({ hotelId, isActive: true, status: 'available', capacity: { $gte: totalGuests } });
       if (!rooms || rooms.length === 0) return 0;
-      const reservations = await ReservationModel.find({ 
-        businessId: hotelId, 
+      const reservations = await ReservationModel.find({
+        businessId: hotelId,
         businessType: 'hotel',
         status: { $in: ['pending', 'confirmed'] }
       });
@@ -116,7 +122,7 @@ export const roomResolvers: IResolvers<unknown, Context> = {
       _parent,
       { input }: MutationCreateArgs,
     ) => {
-  
+
       const room = new RoomModel(input);
       await room.save();
       return room;
@@ -134,7 +140,7 @@ export const roomResolvers: IResolvers<unknown, Context> = {
       _parent,
       { id }: IdArg,
     ): Promise<boolean> => {
-   
+
       await RoomModel.findByIdAndUpdate(id, { isActive: false });
       return true;
     }

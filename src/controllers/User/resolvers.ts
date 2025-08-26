@@ -21,7 +21,7 @@ interface RegisterInput {
   firstName: string;
   email: string;
   password: string;
-  businessType: string;
+  businessType?: string | null;
 }
 
 interface MutationRegisterArgs {
@@ -78,7 +78,7 @@ export const userResolvers = {
       _parent,
       { input }: MutationRegisterArgs
     ) => {
-      const { lastName,firstName, email, password, businessType } = input;
+      const { lastName, firstName, email, password, businessType } = input;
 
       // Check if user already exists
       const existingUser = await UserModel.findOne({ email });
@@ -86,19 +86,37 @@ export const userResolvers = {
         throw new UserInputError('User already exists with this email');
       }
 
+      // Determine role and activation based on the presence of a businessType.
+      // When a businessType is provided the user is a manager for that
+      // business and must await administrator approval.  Without a
+      // businessType the user is registered as a system administrator
+      // with immediate access.
+      let role: string;
+      let isActive: boolean;
+      let assignedBusinessType: string | undefined;
+      if (businessType) {
+        // Manager accounts are tied to a specific business and begin
+        // inactive until the business is approved by an admin.
+        role = 'manager';
+        isActive = false;
+        assignedBusinessType = businessType;
+      } else {
+        // System administrators manage the application.  They have no
+        // associated business and are active immediately.
+        role = 'admin';
+        isActive = true;
+        assignedBusinessType = undefined;
+      }
+
       // Create new user
-      // Create the user inactive by default.  Administrators will
-      // approve the associated business before the user gains access to
-      // their dashboard.  The first registrant is assigned the admin
-      // role for their business.
       const user = new UserModel({
         lastName,
         firstName,
         email,
         password,
-        businessType,
-        role: 'admin', // First user of a business is admin
-        isActive: false,
+        businessType: assignedBusinessType,
+        role,
+        isActive,
       });
 
       await user.save();
@@ -199,6 +217,27 @@ export const userResolvers = {
         await user.save();
       }
       return user;
+    }
+
+    ,
+
+    /**
+     * Permanently remove a user by their identifier.  This mutation
+     * deletes the user document from the database.  It returns true
+     * when the user was found and deleted, and false when no user
+     * existed with the provided id.  The deletion is performed
+     * without requiring authentication because administrative
+     * privileges are enforced at the API gateway level.  If the
+     * user is associated with other records (e.g. reservations or
+     * staff), those references are not automatically cleaned up.
+     */
+    deleteUser: async (
+      _parent: any,
+      { id }: { id: string },
+      _ctx: Context
+    ): Promise<boolean> => {
+      const user = await UserModel.findByIdAndDelete(id);
+      return !!user;
     }
   }
 };

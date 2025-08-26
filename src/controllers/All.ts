@@ -91,6 +91,10 @@ export const root = gql`
     # Assign a business or update role on a user
     updateUser(id: ID!, input: UserUpdateInput!): User!
 
+    # Permanently remove a user from the system.  Returns true when the
+    # user was found and deleted and false otherwise.
+    deleteUser(id: ID!): Boolean!
+
     # Append a new service to an existing user.  This mutation
     # enables a manager account to manage additional businesses
     # (hotel, restaurant or salon) without overwriting their

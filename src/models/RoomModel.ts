@@ -27,6 +27,42 @@ interface RoomDocument extends Document {
   description?: string;
 
   /**
+   * Monthly pricing sessions for this room.  Each entry defines a
+   * continuous range of months (1–12) and an associated nightly
+   * price.  When provided the system should use these ranges to
+   * determine the cost of a stay based on the check‑in/check‑out
+   * dates.  If no monthlyPrices are defined the base `price` field
+   * applies to all months.  Example: to charge 200 dh per night
+   * from January (month 1) through May (month 5) and 600 dh per
+   * night from June (month 6) through December (month 12), create
+   * two entries: `{ startMonth: 1, endMonth: 5, price: 200 }` and
+   * `{ startMonth: 6, endMonth: 12, price: 600 }`.
+   */
+  monthlyPrices?: {
+    startMonth: number;
+    endMonth: number;
+    price: number;
+  }[];
+
+  /**
+   * Date range pricing sessions for this room.  Each entry defines a
+   * start and end month/day (1–12 for months, 1–31 for days) and a
+   * nightly rate that overrides the base price for that period.
+   * Dates are interpreted on an annual cycle; for example a period
+   * with startMonth=12 and startDay=15 and endMonth=1 and endDay=5
+   * covers the span from December 15 through January 5 each year.
+   * When no special pricing sessions apply the room’s base price
+   * (or monthly pricing if defined) will be used.
+   */
+  specialPrices?: {
+    startMonth: number;
+    startDay: number;
+    endMonth: number;
+    endDay: number;
+    price: number;
+  }[];
+
+  /**
    * Paid options selected for this room.  These correspond to the
    * roomPaidOptions defined on the parent hotel and allow a room to
    * offer specific purchasable add-ons.  Each option includes a
@@ -93,6 +129,41 @@ const roomSchema = new Schema<RoomDocument>({
   price: {
     type: Number,
     required: true
+  },
+  // Array of monthly pricing ranges.  Each object defines the first
+  // and last month (1‑based) of the range and the nightly rate to
+  // charge during that period.  When provided this overrides the
+  // base price for the specified months.  Ranges may overlap and
+  // will be applied in the order defined.  This field is optional
+  // and defaults to an empty array.  See the RoomDocument
+  // interface for a usage example.
+  monthlyPrices: {
+    type: [
+      {
+        startMonth: { type: Number, required: true },
+        endMonth: { type: Number, required: true },
+        price: { type: Number, required: true },
+      },
+    ],
+    default: [],
+  },
+
+  // Array of special date range pricing sessions.  Each object
+  // defines the starting and ending month/day (1-based) and the
+  // nightly rate to charge during that period.  When provided these
+  // override the base price (and monthlyPrices) for the specified
+  // ranges.  Defaults to an empty array.
+  specialPrices: {
+    type: [
+      {
+        startMonth: { type: Number, required: true },
+        startDay: { type: Number, required: true },
+        endMonth: { type: Number, required: true },
+        endDay: { type: Number, required: true },
+        price: { type: Number, required: true },
+      },
+    ],
+    default: [],
   },
   size: Number,
   status: {

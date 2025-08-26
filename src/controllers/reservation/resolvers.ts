@@ -3,6 +3,7 @@
 import ReservationModel from '../../models/ReservationModel';
 import HotelModel from '../../models/HotelModel';
 import InvoiceModel from '../../models/InvoiceModel';
+import PDFDocument from 'pdfkit';
 
 // interface Context {
 //   user?: { id: string };
@@ -204,6 +205,24 @@ export const reservationResolvers = {
       // }
       await ReservationModel.findByIdAndDelete(id);
       return true;
+    },
+    /**
+     * Generate a PDF summary for a reservation. The PDF includes essential
+     * details such as reservation identifier, status, payment status,
+     * customer information and booking specifics.  A base64-encoded
+     * representation of the PDF is returned.  Throws an error if
+     * the reservation does not exist.
+     */
+    generateReservationPdf: async (
+      _parent: any,
+      { id }: { id: string },
+    ) => {
+      const reservation: any = await ReservationModel.findById(id);
+      if (!reservation) {
+        throw new Error('Reservation not found');
+      }
+      const buffer = await generateReservationPdfBuffer(reservation);
+      return buffer.toString('base64');
     }
   },
   Reservation: {
@@ -232,3 +251,98 @@ export const reservationResolvers = {
     }
   }
 };
+
+/**
+ * Helper function to construct a PDF summarising a reservation.  This
+ * function creates a simple PDF with sections for basic metadata
+ * (ID, status), customer details and booking‑specific fields
+ * depending on the business type.  A Buffer containing the PDF
+ * bytes is returned.
+ */
+async function generateReservationPdfBuffer(reservation: any): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50 });
+      const buffers: Buffer[] = [];
+      doc.on('data', (chunk) => buffers.push(chunk as Buffer));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      // Title
+      doc.fontSize(20).text('Reservation Summary', { align: 'center' });
+      doc.moveDown();
+      // Basic information
+      doc.fontSize(12);
+      doc.text(`Reservation ID: ${reservation._id}`);
+      if (reservation.status) {
+        doc.text(`Status: ${reservation.status}`);
+      }
+      if (reservation.paymentStatus) {
+        doc.text(`Payment Status: ${reservation.paymentStatus}`);
+      }
+      // Customer information
+      if (reservation.customerInfo) {
+        doc.moveDown(0.5);
+        doc.text('Customer Information:', { underline: true });
+        if (reservation.customerInfo.name) {
+          doc.text(`Name: ${reservation.customerInfo.name}`);
+        }
+        if (reservation.customerInfo.email) {
+          doc.text(`Email: ${reservation.customerInfo.email}`);
+        }
+        if (reservation.customerInfo.phone) {
+          doc.text(`Phone: ${reservation.customerInfo.phone}`);
+        }
+      }
+      doc.moveDown(0.5);
+      doc.text(`Business Type: ${reservation.businessType}`);
+      doc.moveDown(0.5);
+      // Booking details depending on type
+      if (reservation.businessType === 'hotel') {
+        if (reservation.checkIn) {
+          const checkInDate = new Date(reservation.checkIn).toISOString().split('T')[0];
+          doc.text(`Check‑in: ${checkInDate}`);
+        }
+        if (reservation.checkOut) {
+          const checkOutDate = new Date(reservation.checkOut).toISOString().split('T')[0];
+          doc.text(`Check‑out: ${checkOutDate}`);
+        }
+        if (reservation.guests !== undefined && reservation.guests !== null) {
+          doc.text(`Guests: ${reservation.guests}`);
+        }
+      } else if (reservation.businessType === 'restaurant') {
+        if (reservation.date) {
+          const dateStr = new Date(reservation.date).toISOString().split('T')[0];
+          doc.text(`Date: ${dateStr}`);
+        }
+        if (reservation.time) {
+          doc.text(`Time: ${reservation.time}`);
+        }
+        if (reservation.partySize !== undefined && reservation.partySize !== null) {
+          doc.text(`Party size: ${reservation.partySize}`);
+        }
+      } else if (reservation.businessType === 'salon') {
+        if (reservation.date) {
+          const dateStr = new Date(reservation.date).toISOString().split('T')[0];
+          doc.text(`Date: ${dateStr}`);
+        }
+        if (reservation.time) {
+          doc.text(`Time: ${reservation.time}`);
+        }
+        if (reservation.duration !== undefined && reservation.duration !== null) {
+          doc.text(`Duration: ${reservation.duration} minutes`);
+        }
+      }
+      if (reservation.notes) {
+        doc.moveDown(0.5);
+        doc.text(`Notes: ${reservation.notes}`);
+      }
+      // Total amount at bottom right
+      if (typeof reservation.totalAmount === 'number') {
+        doc.moveDown(1);
+        doc.fontSize(14).text(`Total Amount: ${reservation.totalAmount.toFixed(2)}`, { align: 'right' });
+      }
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}

@@ -1,13 +1,14 @@
 import PaymentModel from '../../models/PaymentModel';
 import ReservationModel from '../../models/ReservationModel';
 import InvoiceModel from '../../models/InvoiceModel';
+import RestaurantModel from '../../models/RestaurantModel';
+import SalonModel from '../../models/SalonModel';
+import RoomModel from '../../models/RoomModel';
 // Import restaurant and salon models so we can resolve the owning client when
 // listing payments for those business types.  Some payment records may
 // reference either a restaurant/salon identifier or the underlying client
 // identifier depending on how reservations were created.  Including these
 // models enables us to search for payments using both IDs.
-import RestaurantModel from '../../models/RestaurantModel';
-import SalonModel from '../../models/SalonModel';
 
 // Lazy import stripe to avoid circular dependencies during tests.  We
 // require the module only when a payment session is created.
@@ -107,6 +108,43 @@ export const paymentResolvers = {
       if (!amount || amount <= 0) {
         throw new Error('Invalid reservation amount');
       }
+      // Determine the currency for the payment.  By default use USD but
+      // attempt to resolve the currency from the owning business.  For
+      // restaurants and salons the currency is stored on the settings
+      // object of the business associated with the clientId.  For hotels
+      // we derive it from the associated room's hotel settings.  When
+      // the currency cannot be determined we fallback to USD.
+      let currency: string = 'USD';
+      try {
+        const type = (reservation.businessType || '').toLowerCase();
+        if (type === 'restaurant') {
+          // Find the restaurant by clientId; some reservations store
+          // businessId as the client identifier.  If the restaurant
+          // exists and defines a currency, use it.
+          const restaurant: any = await RestaurantModel.findOne({ clientId: businessId });
+          const cur = restaurant?.settings?.currency;
+          if (cur) currency = cur;
+        } else if (type === 'salon') {
+          const salon: any = await SalonModel.findOne({ clientId: businessId });
+          const cur = salon?.settings?.currency;
+          if (cur) currency = cur;
+        } else if (type === 'hotel') {
+          // For hotel bookings the businessId refers to the client.  We
+          // determine the hotel by looking up the room and its
+          // associated hotelId, then reading the hotel settings.
+          if (reservation.roomId) {
+            const room: any = await RoomModel.findById(reservation.roomId).populate('hotelId');
+            const hotel: any = room?.hotelId;
+            const cur = hotel?.settings?.currency;
+            if (cur) currency = cur;
+          }
+        }
+      } catch (err) {
+        // If any lookup fails, currency remains the default
+      }
+      // Normalize to lowercase for Stripe API; Stripe expects ISO
+      // currency codes in lowercase.
+      const stripeCurrency = (currency || 'USD').toLowerCase();
       // Create a new payment record with pending status.  This record
       // associates the reservation and business, storing the amount and
       // currency used.
@@ -114,7 +152,7 @@ export const paymentResolvers = {
         reservationId: reservation._id,
         businessId: businessId,
         amount: amount,
-        currency: 'usd',
+        currency: stripeCurrency,
         status: 'pending',
       });
       await paymentRecord.save();
@@ -134,7 +172,7 @@ export const paymentResolvers = {
         line_items: [
           {
             price_data: {
-              currency: 'usd',
+              currency: stripeCurrency,
               unit_amount: unitAmount,
               product_data: {
                 name: `Reservation ${reservation._id.toString()}`,

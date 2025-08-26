@@ -69,9 +69,16 @@ const userSchema = new Schema<IUser>({
   businessType: {
     type: String,
     enum: ['hotel', 'restaurant', 'salon'],
-    required: function() {
-      return this.role !== 'customer';
-    }
+    /**
+     * Require a business type only for roles that manage a specific
+     * business (manager or staff).  Administrators and customers do
+     * not need an associated business type.  Using a function as
+     * `required` allows us to access `this.role` at runtime.
+     */
+    required: function(this: any) {
+      const role = this.role;
+      return role === 'manager' || role === 'staff';
+    },
   },
   businessId: {
     type: Schema.Types.ObjectId,
