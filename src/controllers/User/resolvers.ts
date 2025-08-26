@@ -74,6 +74,21 @@ export const userResolvers = {
   },
 
   Mutation: {
+    removeAdminRoleFromServices: async () => {
+      // Update all users with role "admin" and businessType in ["hotel", "restaurant", "salon"]
+      // to have role "manager"
+      await UserModel.updateMany(
+        {
+          role: "admin",
+          businessType: { $in: ["hotel", "restaurant", "salon"] }
+        },
+        {
+          $set: { role: "manager" }
+        }
+      );
+      return true;
+    },
+
     register: async (
       _parent,
       { input }: MutationRegisterArgs

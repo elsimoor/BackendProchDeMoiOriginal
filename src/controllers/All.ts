@@ -164,6 +164,13 @@ export const root = gql`
     # # successful or false if the ID was invalid.
     # deleteShift(id: ID!): Boolean!
 
+
+
+
+    removeAdminRoleFromServices: Boolean!
+
+
+
   }
 `;
 

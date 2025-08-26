@@ -165,6 +165,13 @@ exports.root = (0, apollo_server_express_1.gql) `
     # # successful or false if the ID was invalid.
     # deleteShift(id: ID!): Boolean!
 
+
+
+
+    removeAdminRoleFromServices: Boolean!
+
+
+
   }
 `;
 //# sourceMappingURL=All.js.map
