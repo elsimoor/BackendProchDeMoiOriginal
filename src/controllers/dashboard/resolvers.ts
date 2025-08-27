@@ -16,9 +16,12 @@ export const dashboardResolvers = {
       // specific `from` and `to` are provided (for example, when a
       // single day is selected on the frontend), treat them as
       // inclusive day boundaries using UTC and start/end of day.  If
-      // either is not provided, fall back to the current month.
-      let startDate = moment().startOf('month');
-      let endDate = moment().endOf('month');
+      // either is not provided, fall back to today rather than the
+      // entire month.  This change ensures that the default dashboard
+      // overview reflects bookings made today instead of aggregating
+      // over the whole month by default.
+      let startDate = moment.utc().startOf('day');
+      let endDate = moment.utc().endOf('day');
       if (from && to) {
         startDate = moment.utc(from).startOf('day');
         endDate = moment.utc(to).endOf('day');
@@ -30,16 +33,23 @@ export const dashboardResolvers = {
        * tenant/client ID) and restrict to the restaurant business
        * type.  To ensure that the dashboard reflects only bookings
        * originating from the new `/u` pages, we further filter on
-       * `source: 'new-ui'`.  Without this filter, legacy bookings from
-       * other channels (website, admin, phone, etc.) would inflate
-       * metrics and show up in the dashboard overview.
+       * `source: 'new-ui'`.  Historically the `date` field stored the
+       * reservation’s scheduled date (e.g. dining date) which could
+       * be in the future.  The dashboard metrics are meant to
+       * represent revenue generated on the day the reservation was
+       * created, not the day the guest will arrive.  We therefore
+       * filter by `createdAt` rather than `date` so that a booking
+       * made today with a future dining date is included in today’s
+       * overview.  Without this change reservations scheduled in the
+       * future would not appear until their dining date, causing
+       * mismatched revenue figures.
        */
       // @ts-ignore
       const reservations = await ReservationModel.find({
         businessId: restaurant._id,
         businessType: 'restaurant',
         source: 'new-ui',
-        date: { $gte: startDate.toDate(), $lte: endDate.toDate() },
+        createdAt: { $gte: startDate.toDate(), $lte: endDate.toDate() },
       });
 
       // Determine the restaurant settings once and reuse below.
@@ -165,18 +175,21 @@ export const dashboardResolvers = {
       const nextDay = moment.utc(targetDate).add(1, 'days').toDate();
 
       /*
-       * Retrieve reservations for the specified day.  Match on the
+       * Retrieve reservations created on the specified day.  Match on the
        * restaurant's own ID and restrict to `source: 'new-ui'` to
-       * include only bookings from the public reservation pages.  We
-       * exclude other sources so the dashboard reflects only
-       * user-facing activity.
+       * include only bookings from the public reservation pages.  By
+       * filtering on `createdAt` instead of `date` we surface
+       * reservations made on the selected day regardless of when the
+       * dining occurs.  This ensures the reservations list in the
+       * dashboard reflects today’s revenue events rather than future
+       * dining dates.
        */
       // @ts-ignore
       const reservations = await ReservationModel.find({
         businessId: restaurant._id,
         businessType: 'restaurant',
         source: 'new-ui',
-        date: { $gte: targetDate, $lt: nextDay },
+        createdAt: { $gte: targetDate, $lt: nextDay },
       }).populate('businessId');
 
       return reservations.map((r) => {
