@@ -241,6 +241,8 @@ export const dashboardResolvers = {
       let horaires: any[] = Array.isArray(settings.horaires) && settings.horaires.length > 0
         ? settings.horaires
         : [];
+
+        
       /*
        * Previously, when no horaires were configured in the restaurant settings,
        * the system attempted to derive opening hours from the separate
