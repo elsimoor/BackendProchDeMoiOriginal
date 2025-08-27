@@ -10,6 +10,15 @@ interface IdArg {
   id: string;
 }
 
+/**
+ * Input type for creating a privatisation option.  Mirrors the
+ * GraphQL input definition and includes all optional fields supported
+ * by the model.  Additional fields such as `menusDetails`, `tarif`,
+ * `conditions` and `fileUrl` are included to allow passing custom
+ * group menus, a flat rate, terms and an uploaded document URL.  When
+ * not provided, these fields default to undefined and are omitted
+ * from the created document.
+ */
 interface CreatePrivatisationOptionInput {
   nom: string;
   description?: string;
@@ -17,9 +26,41 @@ interface CreatePrivatisationOptionInput {
   capaciteMaximale: number;
   dureeMaximaleHeures: number;
   menusDeGroupe?: string[];
+  /**
+   * Detailed group menus associated with this option.  Each menu can
+   * specify a name, optional description and price.  When provided,
+   * these entries are stored in the `menusDetails` field of the
+   * privatisation option.  If omitted, no detailed menus are
+   * recorded.
+   */
+  menusDetails?: {
+    nom: string;
+    description?: string;
+    prix: number;
+  }[];
+  /**
+   * Global or base rate for the privatisation option.  Can be used to
+   * specify a forfait or per-event charge.  Optional.
+   */
+  tarif?: number;
+  /**
+   * Terms and conditions applicable to this privatisation option.  Optional.
+   */
+  conditions?: string;
+  /**
+   * Optional URL to an uploaded document (e.g. Word file) containing
+   * detailed requirements or specifications for this option.
+   */
+  fileUrl?: string;
   restaurantId: string;
 }
 
+/**
+ * Input type for updating an existing privatisation option.  All
+ * fields are optional to allow partial updates.  Additional fields
+ * correspond to those available on creation, enabling modifications
+ * of detailed menus, tariff, conditions and associated file URL.
+ */
 interface UpdatePrivatisationOptionInput {
   nom?: string;
   description?: string;
@@ -27,6 +68,14 @@ interface UpdatePrivatisationOptionInput {
   capaciteMaximale?: number;
   dureeMaximaleHeures?: number;
   menusDeGroupe?: string[];
+  menusDetails?: {
+    nom: string;
+    description?: string;
+    prix: number;
+  }[];
+  tarif?: number;
+  conditions?: string;
+  fileUrl?: string;
 }
 
 interface MutationCreateArgs {

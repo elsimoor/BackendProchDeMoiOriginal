@@ -209,6 +209,7 @@ export const dashboardResolvers = {
         };
       });
     },
+    // @ts-ignore
     availability: async (_, { restaurantId, date, partySize }) => {
       const restaurant = await RestaurantModel.findById(restaurantId).lean();
       if (!restaurant) {
@@ -282,23 +283,34 @@ export const dashboardResolvers = {
         status: { $in: ['confirmed', 'pending'] },
       }).select('time partySize');
 
-      // 3. Calculate bookings per slot
-      const bookingsBySlot: Record<string, number> = reservations.reduce((acc: Record<string, number>, r: any) => {
-        if (r.time) {
-          acc[r.time] = (acc[r.time] || 0) + (r.partySize || 0);
+      // 3. Calculate the number of reservations per slot.
+      // Instead of summing the party sizes, we count each reservation as a single booking.
+      // Normalize reservation times to HH:mm (zero‑padded) before counting.  This prevents
+      // mismatches between values like "9:00" and "09:00" which would otherwise
+      // be treated as distinct keys.  Moment is used to format each time.
+      const bookingsBySlot: Record<string, number> = {};
+      reservations.forEach((r: any) => {
+        if (!r.time) return;
+        try {
+          // Construct a full ISO date/time string using the provided date and the
+          // reservation's time, then format to HH:mm.  Using the date ensures
+          // moment.parse applies consistent timezone handling.  If parsing fails,
+          // fall back to the raw time.
+          const normalized = moment.utc(`${date}T${r.time}`).format('HH:mm');
+          bookingsBySlot[normalized] = (bookingsBySlot[normalized] || 0) + 1;
+        } catch (err) {
+          // On error, increment the raw time key.
+          bookingsBySlot[r.time] = (bookingsBySlot[r.time] || 0) + 1;
         }
-        return acc;
-      }, {});
+      });
 
       // 4. Determine availability for each slot
-      // Use maxReservationsParCreneau or capaciteTotale as the slot capacity; default to 1 when both are undefined.
-      const slotCapacity = settings.maxReservationsParCreneau || settings.capaciteTotale || 1;
-      const availabilitySlots = allSlots.map(slot => {
-        const currentBookings = bookingsBySlot[slot] || 0;
-        // A slot is available if the current number of bookings plus the requested party size does not exceed the slot capacity.
-        // We rely on the requested party size to ensure that a large party does not exceed capacity.  This also means that if
-        // slotCapacity is 1 (default), any existing reservation will mark the slot as unavailable.
-        const available = (currentBookings + partySize) <= slotCapacity;
+      // A slot becomes unavailable as soon as the number of reservations reaches the configured maximum.  When
+      // `maxReservationsParCreneau` is not set, default to 1 so that only a single reservation can be made per slot.
+      const slotCapacity = settings.maxReservationsParCreneau || 1;
+      const availabilitySlots = allSlots.map((slot) => {
+        const currentCount = bookingsBySlot[slot] || 0;
+        const available = currentCount < slotCapacity;
         return { time: slot, available };
       });
       return availabilitySlots;

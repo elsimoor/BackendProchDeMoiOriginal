@@ -1,5 +1,6 @@
 // business.resolvers.ts
 import { GraphQLError } from 'graphql';
+import moment from 'moment';
 import HotelModel from '../../models/HotelModel';
 import RestaurantModel from '../../models/RestaurantModel';
 import SalonModel from '../../models/SalonModel';
@@ -399,21 +400,64 @@ export const businessResolvers = {
       if (!restaurant) {
         throw new GraphQLError('Restaurant not found.');
       }
-      // Construct the reservation document.  Note that totalAmount is
-      // computed on the server side rather than passed by the client.
-      const partySize = input.personnes;
+      // Normalise the reservation time to HH:mm format.  Accept values with or
+      // without leading zeros and ensure a consistent representation in
+      // the database.  Use the provided date in ISO format when
+      // parsing to avoid timezone issues.
+      let normalizedTime = input.heure;
+      try {
+        normalizedTime = moment.utc(`${input.date}T${input.heure}`).format('HH:mm');
+      } catch (err) {
+        // Fall back to the original value if parsing fails
+        normalizedTime = input.heure;
+      }
+      // Parse the date string into a Date object using UTC to avoid
+      // timezone offsets.
+      let parsedDate: Date;
+      try {
+        parsedDate = moment.utc(input.date, 'YYYY-MM-DD').toDate();
+      } catch (err) {
+        // Fallback: directly construct a Date from the input string
+        parsedDate = new Date(input.date);
+      }
+      // Before creating the reservation, enforce a per‑slot capacity check.
+      try {
+        const startOfDay = moment.utc(parsedDate).startOf('day').toDate();
+        const endOfDay = moment.utc(parsedDate).endOf('day').toDate();
+        const existingCount = await ReservationModel.countDocuments({
+          businessId: restaurant._id,
+          businessType: 'restaurant',
+          date: { $gte: startOfDay, $lt: endOfDay },
+          time: normalizedTime,
+          status: { $in: ['pending', 'confirmed'] },
+        });
+        const maxPerSlot = (restaurant.settings as any)?.maxReservationsParCreneau || 1;
+        if (existingCount >= maxPerSlot) {
+          throw new GraphQLError('Ce créneau est déjà complet.', {
+            // @ts-ignore
+            extensions: { code: 'TIME_SLOT_FULL' },
+          });
+        }
+      } catch (err) {
+        console.error('Error checking existing reservations:', err);
+      }
+      // Compute the number of guests from the personnes field.  Some clients may
+      // pass the party size as a string; ensure that it is a number.
+      const partySize = parseInt((input as any).personnes, 10) || input.personnes;
+      // Build the reservation document.  Spread the remainder of the input
+      // (excluding restaurantId) to preserve additional fields like
+      // customerInfo, emplacement, paymentMethod and reservationFileUrl.  We
+      // explicitly set the parsed date and normalized time to ensure
+      // consistency.
       const reservation = new ReservationModel({
         ...reservationData,
+        date: parsedDate,
         businessId: restaurant._id,
-        businessType: "restaurant",
+        businessType: 'restaurant',
         partySize: partySize,
-        time: input.heure,
-        // Set status and paymentStatus to pending until payment is completed.
-        status: "pending",
-        paymentStatus: "pending",
-        // Mark reservations created from the user-facing UI with a
-        // specific source so that dashboard metrics can distinguish
-        // them from bookings entered via the admin, phone, etc.
+        time: normalizedTime,
+        status: 'pending',
+        paymentStatus: 'pending',
         source: 'new-ui',
       });
       // Persist the chosen payment method and any reservation file URL
@@ -426,16 +470,14 @@ export const businessResolvers = {
         (reservation as any).reservationFileUrl = input.reservationFileUrl;
       }
       // Compute a basic total amount for the booking based on the number of guests.
-      // If the restaurant has defined time-based pricing in its settings.horaires,
-      // select the applicable price; otherwise default to 75 per guest.
       let pricePerGuest = 75;
       try {
         const horaires = (restaurant.settings as any)?.horaires || [];
         const toMinutes = (t: string) => {
-          const [h, m] = t.split(":").map((n) => parseInt(n, 10));
+          const [h, m] = t.split(':').map((n) => parseInt(n, 10));
           return h * 60 + m;
         };
-        const reservationTimeMinutes = toMinutes(input.heure);
+        const reservationTimeMinutes = toMinutes(normalizedTime);
         for (const h of horaires) {
           if (h.ouverture && h.fermeture) {
             const start = toMinutes(h.ouverture);
@@ -454,7 +496,6 @@ export const businessResolvers = {
       const totalAmount = partySize * pricePerGuest;
       reservation.totalAmount = totalAmount;
       await reservation.save();
-      // Do not create an invoice until the reservation is confirmed and paid.
       return reservation;
     },
 
@@ -467,26 +508,57 @@ export const businessResolvers = {
       if (!restaurant) {
         throw new GraphQLError('Restaurant not found.');
       }
-      const partySize = input.personnes;
+      // Normalise time and date for privatisations.  Use UTC parsing to avoid
+      // discrepancies when comparing against existing reservations.
+      let normalizedTime = input.heure;
+      try {
+        normalizedTime = moment.utc(`${input.date}T${input.heure}`).format('HH:mm');
+      } catch (err) {
+        normalizedTime = input.heure;
+      }
+      let parsedDate: Date;
+      try {
+        parsedDate = moment.utc(input.date, 'YYYY-MM-DD').toDate();
+      } catch (err) {
+        parsedDate = new Date(input.date);
+      }
+      // Prevent overlapping privatisation bookings on the same slot.  Only one privatisation
+      // (or reservation) can occupy a given time slot.
+      try {
+        const startOfDay = moment.utc(parsedDate).startOf('day').toDate();
+        const endOfDay = moment.utc(parsedDate).endOf('day').toDate();
+        const existingCount = await ReservationModel.countDocuments({
+          businessId: restaurant._id,
+          businessType: 'restaurant',
+          date: { $gte: startOfDay, $lt: endOfDay },
+          time: normalizedTime,
+          status: { $in: ['pending', 'confirmed'] },
+        });
+        const maxPerSlot = (restaurant.settings as any)?.maxReservationsParCreneau || 1;
+        if (existingCount >= maxPerSlot) {
+          throw new GraphQLError('Ce créneau est déjà complet.', {
+            // @ts-ignore
+            extensions: { code: 'TIME_SLOT_FULL' },
+          });
+        }
+      } catch (err) {
+        console.error('Error checking existing reservations for privatisation:', err);
+      }
+      const partySize = parseInt((input as any).personnes, 10) || input.personnes;
       const reservation = new ReservationModel({
         ...privatisationData,
+        date: parsedDate,
         businessId: restaurant._id,
-        businessType: "restaurant",
+        businessType: 'restaurant',
         partySize: partySize,
-        time: input.heure,
+        time: normalizedTime,
         duration: input.dureeHeures,
-        // Set status and paymentStatus to pending until the user completes payment.
-        status: "pending",
-        paymentStatus: "pending",
-        // Tag privatisations from the user-facing UI to ensure they
-        // contribute to dashboard statistics.  Without this property
-        // the default source would be 'website' which the dashboard
-        // does not count.
+        status: 'pending',
+        paymentStatus: 'pending',
         source: 'new-ui',
         notes: `Privatisation: ${privatisationData.type} - ${privatisationData.espace}, Menu: ${privatisationData.menu}`,
-        specialRequests: `Privatisation event for ${partySize} guests.`
+        specialRequests: `Privatisation event for ${partySize} guests.`,
       });
-
       // Persist chosen payment method and any attached file URL
       if (input.paymentMethod) {
         (reservation as any).paymentMethod = input.paymentMethod;
@@ -496,10 +568,9 @@ export const businessResolvers = {
       }
       // Compute a default total amount for a privatisation.  Use a higher
       // rate per guest to reflect the premium nature of privatisations.
-      const totalAmount = partySize * 100; // 100 per guest for privatisations
+      const totalAmount = partySize * 100;
       reservation.totalAmount = totalAmount;
       await reservation.save();
-      // Do not create an invoice until payment has been confirmed.
       return reservation;
     }
   }

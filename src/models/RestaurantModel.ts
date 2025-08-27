@@ -123,7 +123,12 @@ const restaurantSchema = new Schema<RestaurantDocument>({
     website: String
   },
   settings: {
-    currency: { type: String, default: 'USD' },
+    // Default currency for restaurants set to MAD (Moroccan Dirham).  Using MAD
+    // as the default ensures that newly created restaurants in regions like
+    // Morocco display prices and totals consistently without having to
+    // explicitly set a currency.  Existing restaurants will retain their
+    // configured currency.
+    currency: { type: String, default: 'MAD' },
     timezone: { type: String, default: 'UTC' },
     taxRate: { type: Number, default: 0 },
     serviceFee: { type: Number, default: 0 },
