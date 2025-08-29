@@ -42,4 +42,21 @@ export const guestTypeDef = gql`
     sms: Boolean!
     phone: Boolean!
   }
+
+  # Pagination object for guests.  Contains the list of guest documents
+  # and additional information about pagination such as the current
+  # page and total number of pages.  Mirrors the structure returned by
+  # mongoose-paginate-v2.
+  type GuestPagination {
+    docs: [Guest!]!
+    totalDocs: Int!
+    limit: Int!
+    totalPages: Int!
+    page: Int!
+    pagingCounter: Int!
+    hasPrevPage: Boolean!
+    hasNextPage: Boolean!
+    prevPage: Int
+    nextPage: Int
+  }
 `;

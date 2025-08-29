@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import mongoosePaginate from 'mongoose-paginate-v2';
 
 /**
  * Invoice model
@@ -61,4 +62,11 @@ const invoiceSchema = new Schema<InvoiceDocument>(
   { timestamps: true }
 );
 
-export default mongoose.model<InvoiceDocument>('Invoice', invoiceSchema);
+// Enable pagination on the Invoice model.  The mongoose-paginate-v2 plugin
+// adds a paginate() method to the model which returns paginated
+// results and associated metadata.
+// @ts-ignore
+invoiceSchema.plugin(mongoosePaginate);
+
+// Cast to any to satisfy TypeScript when using the paginate method.
+export default mongoose.model<InvoiceDocument>('Invoice', invoiceSchema) as any;

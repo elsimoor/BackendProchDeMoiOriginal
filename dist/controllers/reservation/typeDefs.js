@@ -82,6 +82,25 @@ exports.reservationTypeDef = (0, apollo_server_express_1.gql) `
     refundAmount: Float!
   }
 
+  # Pagination object for reservations.  When querying reservations
+  # with pagination parameters the server returns a ReservationPagination
+  # which includes the list of reservations (docs) along with
+  # metadata about the current page, total number of documents and
+  # navigation flags.  The field names mirror those returned by
+  # mongoose-paginate-v2.
+  type ReservationPagination {
+    docs: [Reservation!]!
+    totalDocs: Int!
+    limit: Int!
+    totalPages: Int!
+    page: Int!
+    pagingCounter: Int!
+    hasPrevPage: Boolean!
+    hasNextPage: Boolean!
+    prevPage: Int
+    nextPage: Int
+  }
+
   input CreateReservationV2Input {
     date: String!
     heure: String!

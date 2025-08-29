@@ -78,8 +78,16 @@ async function generateInvoicePdfBuffer(invoice) {
 }
 exports.invoiceResolvers = {
     Query: {
-        invoices: async (_parent, { businessId }) => {
-            return InvoiceModel_1.default.find({ businessId }).sort({ date: -1 });
+        invoices: async (_parent, { businessId, page, limit, }) => {
+            const filter = { businessId };
+            const pageNumber = page && page > 0 ? page : 1;
+            const limitNumber = limit && limit > 0 ? limit : 10;
+            // Paginate invoices sorted by creation date descending.
+            return await InvoiceModel_1.default.paginate(filter, {
+                page: pageNumber,
+                limit: limitNumber,
+                sort: { createdAt: -1 },
+            });
         },
         invoice: async (_parent, { id }) => {
             return InvoiceModel_1.default.findById(id);

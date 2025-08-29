@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import mongoosePaginate from 'mongoose-paginate-v2';
 
 /**
  * Payment model
@@ -48,4 +49,11 @@ const paymentSchema = new Schema<PaymentDocument>(
   { timestamps: true }
 );
 
-export default mongoose.model<PaymentDocument>('Payment', paymentSchema);
+// Enable pagination on the Payment model via mongoose-paginate-v2.  This adds
+// a paginate() method for retrieving paginated payment records with
+// metadata.
+// @ts-ignore
+paymentSchema.plugin(mongoosePaginate);
+
+// Cast to any to allow TypeScript to accept the paginate method.
+export default mongoose.model<PaymentDocument>('Payment', paymentSchema) as any;

@@ -22,8 +22,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
+const mongoose_paginate_v2_1 = __importDefault(require("mongoose-paginate-v2"));
 const reservationSchema = new mongoose_1.Schema({
     businessId: {
         type: mongoose_1.Schema.Types.ObjectId,
@@ -107,5 +111,14 @@ const reservationSchema = new mongoose_1.Schema({
 }, {
     timestamps: true
 });
+// Apply the mongoose-paginate-v2 plugin to enable pagination on reservations.  This
+// plugin adds a `paginate` method to the model which accepts filter,
+// pagination and sorting options and returns an object containing the
+// paginated documents along with metadata such as totalDocs and totalPages.
+// @ts-ignore
+reservationSchema.plugin(mongoose_paginate_v2_1.default);
+// Export the model with the paginate plugin enabled.  Casting to any
+// prevents TypeScript from complaining about missing paginate method
+// definitions on the returned model type.
 exports.default = mongoose_1.default.model('Reservation', reservationSchema);
 //# sourceMappingURL=ReservationModel.js.map

@@ -6,6 +6,7 @@ import {
   Types,
   Model
 } from 'mongoose';
+import mongoosePaginate from 'mongoose-paginate-v2';
 
 /* ---------- sub-document types ---------- */
 
@@ -165,11 +166,17 @@ const guestSchema = new Schema<GuestDocument>(
   { timestamps: true }
 );
 
+// Enable pagination on the Guest model via the mongoose-paginate-v2 plugin.
+// This plugin adds a `paginate` method to the model which can be used
+// to retrieve paginated guest documents along with relevant metadata.
+// @ts-ignore
+guestSchema.plugin(mongoosePaginate);
+
 /* ---------- model ---------- */
 
 export const GuestModel: Model<GuestDocument> = model<GuestDocument>(
   'Guest',
   guestSchema
-);
+) as any;
 
 export default GuestModel;

@@ -41,6 +41,22 @@ exports.paymentTypeDef = (0, apollo_server_express_1.gql) `
     url: String!
   }
 
+  # Pagination object for payments.  Includes the list of Payment records
+  # along with metadata for navigation between pages.  Mirrors the
+  # structure returned by mongoose-paginate-v2.
+  type PaymentPagination {
+    docs: [Payment!]!
+    totalDocs: Int!
+    limit: Int!
+    totalPages: Int!
+    page: Int!
+    pagingCounter: Int!
+    hasPrevPage: Boolean!
+    hasNextPage: Boolean!
+    prevPage: Int
+    nextPage: Int
+  }
+
   input CreatePaymentSessionInput {
     reservationId: ID!
     # URL to redirect the client upon successful payment completion.
@@ -50,8 +66,10 @@ exports.paymentTypeDef = (0, apollo_server_express_1.gql) `
   }
 
   extend type Query {
-    # Retrieve a list of payment records for the specified business.
-    payments(businessId: ID!): [Payment!]!
+    # Retrieve a paginated list of payment records for the specified business.
+    # Results are sorted by creation date descending (newest first).  Optional
+    # page and limit arguments control pagination.
+    payments(businessId: ID!, page: Int, limit: Int): PaymentPagination!
     # Fetch a single payment by its identifier.
     payment(id: ID!): Payment
   }

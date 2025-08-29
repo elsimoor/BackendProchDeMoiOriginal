@@ -22,8 +22,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
+const mongoose_paginate_v2_1 = __importDefault(require("mongoose-paginate-v2"));
 const invoiceItemSchema = new mongoose_1.Schema({
     description: { type: String, required: true },
     price: { type: Number, required: true },
@@ -37,5 +41,11 @@ const invoiceSchema = new mongoose_1.Schema({
     items: { type: [invoiceItemSchema], default: [] },
     total: { type: Number, required: true },
 }, { timestamps: true });
+// Enable pagination on the Invoice model.  The mongoose-paginate-v2 plugin
+// adds a paginate() method to the model which returns paginated
+// results and associated metadata.
+// @ts-ignore
+invoiceSchema.plugin(mongoose_paginate_v2_1.default);
+// Cast to any to satisfy TypeScript when using the paginate method.
 exports.default = mongoose_1.default.model('Invoice', invoiceSchema);
 //# sourceMappingURL=InvoiceModel.js.map

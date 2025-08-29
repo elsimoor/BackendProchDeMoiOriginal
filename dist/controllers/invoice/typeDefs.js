@@ -45,8 +45,27 @@ exports.invoiceTypeDef = (0, apollo_server_express_1.gql) `
     total: Float!
   }
 
+  # Pagination object for invoices.  Returned when querying invoices
+  # with pagination parameters.  Includes the list of invoices and
+  # metadata about the current page and total document counts.
+  type InvoicePagination {
+    docs: [Invoice!]!
+    totalDocs: Int!
+    limit: Int!
+    totalPages: Int!
+    page: Int!
+    pagingCounter: Int!
+    hasPrevPage: Boolean!
+    hasNextPage: Boolean!
+    prevPage: Int
+    nextPage: Int
+  }
+
   extend type Query {
-    invoices(businessId: ID!): [Invoice!]!
+    # Retrieve paginated invoices for the specified business.  Sorted by
+    # creation date descending.  Optional page and limit arguments
+    # control pagination.
+    invoices(businessId: ID!, page: Int, limit: Int): InvoicePagination!
     invoice(id: ID!): Invoice
   }
 

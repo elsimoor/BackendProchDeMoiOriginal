@@ -10,11 +10,18 @@ exports.guestResolvers = void 0;
 const GuestModel_1 = __importDefault(require("../../models/GuestModel"));
 exports.guestResolvers = {
     Query: {
-        guests: async (_parent, { businessId, businessType, status }) => {
+        guests: async (_parent, { businessId, businessType, status, page, limit }) => {
             const filter = { businessId, businessType };
             if (status)
                 filter.status = status;
-            return GuestModel_1.default.find(filter).sort({ name: 1 });
+            const pageNumber = page && page > 0 ? page : 1;
+            const limitNumber = limit && limit > 0 ? limit : 10;
+            // Use paginate to return a paginated list of guests sorted alphabetically by name.
+            return await GuestModel_1.default.paginate(filter, {
+                page: pageNumber,
+                limit: limitNumber,
+                sort: { name: 1 },
+            });
         },
         guest: async (_parent, { id }) => {
             return GuestModel_1.default.findById(id);

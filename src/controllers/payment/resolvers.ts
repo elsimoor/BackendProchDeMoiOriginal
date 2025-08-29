@@ -30,8 +30,16 @@ function getStripe() {
 
 export const paymentResolvers = {
   Query: {
-    // List payments belonging to a business.  Sorted by most recent first.
-    payments: async (_parent: any, { businessId }: { businessId: string }) => {
+    // List payments belonging to a business.  Supports pagination and sorts
+    // results by most recent first.
+    payments: async (
+      _parent: any,
+      {
+        businessId,
+        page,
+        limit,
+      }: { businessId: string; page?: number; limit?: number }
+    ) => {
       /**
        * When fetching payments for a business we accept the identifier of the
        * current dashboard context (hotel, restaurant or salon).  Payment
@@ -72,7 +80,15 @@ export const paymentResolvers = {
       }
       // Deduplicate identifiers
       const uniqueIds = Array.from(new Set(ids));
-      return PaymentModel.find({ businessId: { $in: uniqueIds } }).sort({ createdAt: -1 });
+      const filter = { businessId: { $in: uniqueIds } };
+      const pageNumber = page && page > 0 ? page : 1;
+      const limitNumber = limit && limit > 0 ? limit : 10;
+      // Use paginate to retrieve payments along with pagination metadata.
+      return await (PaymentModel as any).paginate(filter, {
+        page: pageNumber,
+        limit: limitNumber,
+        sort: { createdAt: -1 },
+      });
     },
     // Fetch a single payment by identifier.
     payment: async (_parent: any, { id }: { id: string }) => {

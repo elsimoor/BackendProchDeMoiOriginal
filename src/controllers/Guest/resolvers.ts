@@ -11,6 +11,10 @@ interface GuestsArgs {
   businessId: string;
   businessType: string;
   status?: string;
+  /** Page number for pagination (1-based). */
+  page?: number;
+  /** Number of guests per page. */
+  limit?: number;
 }
 
 interface IdArg {
@@ -33,11 +37,18 @@ export const guestResolvers = {
   Query: {
     guests: async (
       _parent,
-      { businessId, businessType, status }: GuestsArgs
-    ): Promise<any[]> => {
+      { businessId, businessType, status, page, limit }: GuestsArgs
+    ): Promise<any> => {
       const filter: Record<string, any> = { businessId, businessType };
       if (status) filter.status = status;
-      return GuestModel.find(filter).sort({ name: 1 });
+      const pageNumber = page && page > 0 ? page : 1;
+      const limitNumber = limit && limit > 0 ? limit : 10;
+      // Use paginate to return a paginated list of guests sorted alphabetically by name.
+      return await (GuestModel as any).paginate(filter, {
+        page: pageNumber,
+        limit: limitNumber,
+        sort: { name: 1 },
+      });
     },
 
     guest: async (

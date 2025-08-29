@@ -32,6 +32,15 @@ interface ReservationsArgs {
   businessType: string;
   status?: string;
   date?: string;
+  /**
+   * Page number for pagination.  When undefined defaults to 1.
+   */
+  page?: number;
+  /**
+   * Number of documents per page.  When undefined a reasonable default
+   * (e.g. 10) is applied.
+   */
+  limit?: number;
 }
 
 interface IdArg {
@@ -52,7 +61,14 @@ export const reservationResolvers = {
   Query: {
     reservations: async (
       _parent,
-      { businessId, businessType, status, date }: ReservationsArgs
+      {
+        businessId,
+        businessType,
+        status,
+        date,
+        page,
+        limit,
+      }: ReservationsArgs
     ) => {
       const filter: Record<string, any> = { businessId, businessType };
       if (status) filter.status = status;
@@ -62,9 +78,18 @@ export const reservationResolvers = {
         endDate.setDate(endDate.getDate() + 1);
         filter.date = { $gte: startDate, $lt: endDate };
       }
-
-      return ReservationModel.find(filter)
-        .sort({ date: -1 });
+      // Determine pagination parameters with defaults.  The
+      // mongoose‑paginate-v2 plugin treats undefined page/limit as 1 and 10.
+      const pageNumber = page && page > 0 ? page : 1;
+      const limitNumber = limit && limit > 0 ? limit : 10;
+      // Use the paginate method to return paginated reservations along with
+      // metadata.  Sort by createdAt descending so that the most
+      // recently created reservations appear first.
+      return await (ReservationModel as any).paginate(filter, {
+        page: pageNumber,
+        limit: limitNumber,
+        sort: { createdAt: -1 },
+      });
     },
 
     reservation: async (_parent, { id }: IdArg) => {
@@ -99,6 +124,37 @@ export const reservationResolvers = {
             });
             if (!isWithinAnyPeriod) {
               throw new Error('Hotel is not open for the selected dates');
+            }
+          }
+        }
+        /*
+         * Prevent double bookings by checking for overlapping
+         * reservations on the same room.  We only perform this
+         * validation for hotel reservations when a roomId is provided.
+         * A conflict occurs when an existing reservation (pending or
+         * confirmed) overlaps with the requested interval.  The
+         * interval [start, end] is considered half‑open: the day of
+         * check‑out itself can be reused by a subsequent booking.
+         */
+        if (input.roomId) {
+          const newStart: Date | null = input.checkIn ? new Date(input.checkIn) : (input.date ? new Date(input.date) : null);
+          const newEnd: Date | null = input.checkOut ? new Date(input.checkOut) : newStart;
+          if (newStart && newEnd) {
+            const existing = await ReservationModel.find({
+              businessId: input.businessId,
+              businessType: 'hotel',
+              roomId: input.roomId,
+              status: { $in: ['pending', 'confirmed'] },
+            });
+            const hasConflict = existing.some((res: any) => {
+              const resStart: Date | null = res.checkIn ? new Date(res.checkIn) : (res.date ? new Date(res.date) : null);
+              const resEnd: Date | null = res.checkOut ? new Date(res.checkOut) : resStart;
+              if (!resStart || !resEnd) return false;
+              // Treat intervals as half‑open: newStart < resEnd && newEnd > resStart means overlap.
+              return newStart < resEnd && newEnd > resStart;
+            });
+            if (hasConflict) {
+              throw new Error('Room is already reserved for the selected dates');
             }
           }
         }

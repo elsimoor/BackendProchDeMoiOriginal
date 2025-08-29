@@ -57,6 +57,8 @@ interface ReservationDocument extends Document {
   paymentMethod?: string;
 }
 
+import mongoosePaginate from 'mongoose-paginate-v2';
+
 const reservationSchema = new Schema<ReservationDocument>({
   businessId: {
     type: Schema.Types.ObjectId,
@@ -144,4 +146,14 @@ const reservationSchema = new Schema<ReservationDocument>({
   timestamps: true
 });
 
-export default mongoose.model<ReservationDocument>('Reservation', reservationSchema);
+// Apply the mongoose-paginate-v2 plugin to enable pagination on reservations.  This
+// plugin adds a `paginate` method to the model which accepts filter,
+// pagination and sorting options and returns an object containing the
+// paginated documents along with metadata such as totalDocs and totalPages.
+// @ts-ignore
+reservationSchema.plugin(mongoosePaginate);
+
+// Export the model with the paginate plugin enabled.  Casting to any
+// prevents TypeScript from complaining about missing paginate method
+// definitions on the returned model type.
+export default mongoose.model<ReservationDocument>('Reservation', reservationSchema) as any;

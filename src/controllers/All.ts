@@ -20,12 +20,18 @@ export const root = gql`
     salon(id: ID!): Salon
 
     # Reservations
+    # Retrieve paginated reservations for a business.  The results
+    # are sorted by creation date descending (latest first).  Optional
+    # page and limit arguments default to page 1 and a reasonable
+    # page size when omitted.
     reservations(
       businessId: ID!
       businessType: String!
       status: String
       date: Date
-    ): [Reservation!]!
+      page: Int
+      limit: Int
+    ): ReservationPagination!
     reservation(id: ID!): Reservation
 
     # Rooms
@@ -57,11 +63,16 @@ export const root = gql`
     menuItem(id: ID!): MenuItem
 
     # Guests
+    # Retrieve paginated guests for a business.  Results are sorted by
+    # name ascending.  Optional page and limit arguments allow
+    # pagination of large guest lists.
     guests(
       businessId: ID!
       businessType: String!
       status: String
-    ): [Guest!]!
+      page: Int
+      limit: Int
+    ): GuestPagination!
     guest(id: ID!): Guest
 
     # Shifts

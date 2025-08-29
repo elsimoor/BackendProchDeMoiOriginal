@@ -22,8 +22,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
+const mongoose_paginate_v2_1 = __importDefault(require("mongoose-paginate-v2"));
 const paymentSchema = new mongoose_1.Schema({
     reservationId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Reservation' },
     invoiceId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Invoice' },
@@ -42,5 +46,11 @@ const paymentSchema = new mongoose_1.Schema({
     paymentMethod: { type: String },
     receiptUrl: { type: String },
 }, { timestamps: true });
+// Enable pagination on the Payment model via mongoose-paginate-v2.  This adds
+// a paginate() method for retrieving paginated payment records with
+// metadata.
+// @ts-ignore
+paymentSchema.plugin(mongoose_paginate_v2_1.default);
+// Cast to any to allow TypeScript to accept the paginate method.
 exports.default = mongoose_1.default.model('Payment', paymentSchema);
 //# sourceMappingURL=PaymentModel.js.map
