@@ -48,6 +48,14 @@ exports.reservationTypeDef = (0, apollo_server_express_1.gql) `
     # the restaurant’s paymentMethods.  When null, the default
     # payment method applies (typically card).
     paymentMethod: String
+    # ISO currency code for the reservation amount.  This field
+    # represents the currency selected in the business’s settings
+    # (e.g. MAD for Moroccan Dirhams or USD for US Dollars).  The
+    # value is derived on the fly from the business associated with
+    # the reservation rather than stored directly on the document.
+    # Clients can use this to display amounts without converting
+    # between currencies.
+    currency: String
     # URL of an uploaded reservation document (e.g. Word file) that
     # contains additional requirements or explanations for the
     # reservation.  When null no supplementary document is attached.
@@ -60,6 +68,18 @@ exports.reservationTypeDef = (0, apollo_server_express_1.gql) `
     name: String!
     email: String!
     phone: String!
+  }
+
+  # Result returned after cancelling a hotel reservation.  When
+  # cancelling a reservation, the backend evaluates any configured
+  # cancellation policies to determine the refund amount.  The
+  #  flag indicates whether the cancellation succeeded and
+  #  contains the computed refund (in the same
+  # currency as the reservation).  A refundAmount of 0 means no
+  # refund is due.
+  type CancellationResult {
+    success: Boolean!
+    refundAmount: Float!
   }
 
   input CreateReservationV2Input {
@@ -101,6 +121,16 @@ exports.reservationTypeDef = (0, apollo_server_express_1.gql) `
   extend type Mutation {
     confirmReservation(id: ID!): Reservation!
     cancelReservation(id: ID!): Boolean!
+
+    # Cancel a hotel reservation after payment has been captured.
+    # The cancellation laws configured for the business are applied
+    # to compute the refund percentage based on the number of days
+    # before check‑in.  The  argument determines
+    # whether the refund is processed automatically via webhook
+    # (when cancelledBy="user") or left for manual handling (when
+    # cancelledBy="manager").  Returns a CancellationResult with
+    # success and refundAmount.
+    cancelHotelReservation(id: ID!, cancelledBy: String!): CancellationResult!
 
     # Generate a PDF document summarising a reservation.  The
     # returned value is a base64‑encoded representation of the PDF

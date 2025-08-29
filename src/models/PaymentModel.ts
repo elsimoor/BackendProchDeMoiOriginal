@@ -33,7 +33,12 @@ const paymentSchema = new Schema<PaymentDocument>(
     businessId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
     amount: { type: Number, required: true },
     currency: { type: String, default: 'usd' },
-    status: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },
+  // Include 'refunded' as a valid status so that completed payments
+  // which have been refunded can be distinguished from those that remain
+  // paid.  The default remains 'pending' until the Stripe checkout
+  // webhook confirms payment.  When a refund occurs we update the
+  // status to 'refunded' accordingly.
+  status: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
     stripeSessionId: { type: String },
     stripePaymentIntentId: { type: String },
     stripeCustomerId: { type: String },

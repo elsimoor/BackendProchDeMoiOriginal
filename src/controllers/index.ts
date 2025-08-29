@@ -23,6 +23,9 @@ import { invoiceResolvers, invoiceTypeDef } from "./invoice";
 // Payment controller handles checkout sessions and payment records
 import { paymentResolvers, paymentTypeDef } from "./payment";
 
+// Cancellation policy controller allows configuration of refund rules for hotel reservations
+import { cancellationPolicyResolvers, cancellationPolicyTypeDef } from "./cancellationPolicy";
+
 
 
 
@@ -64,6 +67,9 @@ const resolvers = [
   // Payment resolvers provide queries and mutations for payments
   paymentResolvers,
 
+  // Cancellation policy resolvers expose CRUD operations for refund rules
+  cancellationPolicyResolvers,
+
 
 ];
 const typeDefs = [
@@ -92,5 +98,8 @@ const typeDefs = [
 
   // Payment typedefs define payment queries/mutations and types
   paymentTypeDef,
+
+  // Cancellation policy typedefs define the cancellation policy schema
+  cancellationPolicyTypeDef,
 ];
 export { resolvers, typeDefs };

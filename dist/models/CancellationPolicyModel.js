@@ -24,23 +24,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const paymentSchema = new mongoose_1.Schema({
-    reservationId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Reservation' },
-    invoiceId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Invoice' },
+const cancellationPolicySchema = new mongoose_1.Schema({
     businessId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Client', required: true },
-    amount: { type: Number, required: true },
-    currency: { type: String, default: 'usd' },
-    // Include 'refunded' as a valid status so that completed payments
-    // which have been refunded can be distinguished from those that remain
-    // paid.  The default remains 'pending' until the Stripe checkout
-    // webhook confirms payment.  When a refund occurs we update the
-    // status to 'refunded' accordingly.
-    status: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
-    stripeSessionId: { type: String },
-    stripePaymentIntentId: { type: String },
-    stripeCustomerId: { type: String },
-    paymentMethod: { type: String },
-    receiptUrl: { type: String },
-}, { timestamps: true });
-exports.default = mongoose_1.default.model('Payment', paymentSchema);
-//# sourceMappingURL=PaymentModel.js.map
+    daysBefore: { type: Number, required: true },
+    refundPercentage: { type: Number, required: true },
+}, {
+    timestamps: true,
+});
+exports.default = mongoose_1.default.model('CancellationPolicy', cancellationPolicySchema);
+//# sourceMappingURL=CancellationPolicyModel.js.map

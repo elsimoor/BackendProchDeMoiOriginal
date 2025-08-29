@@ -22,6 +22,8 @@ const dashboard_1 = require("./dashboard");
 const invoice_1 = require("./invoice");
 // Payment controller handles checkout sessions and payment records
 const payment_1 = require("./payment");
+// Cancellation policy controller allows configuration of refund rules for hotel reservations
+const cancellationPolicy_1 = require("./cancellationPolicy");
 const All_1 = require("./All");
 const inputs_1 = require("./inputs");
 exports.extendedTypeDefs = (0, apollo_server_express_1.gql) `
@@ -53,6 +55,8 @@ const resolvers = [
     RoomType_1.roomTypeResolvers,
     // Payment resolvers provide queries and mutations for payments
     payment_1.paymentResolvers,
+    // Cancellation policy resolvers expose CRUD operations for refund rules
+    cancellationPolicy_1.cancellationPolicyResolvers,
 ];
 exports.resolvers = resolvers;
 const typeDefs = [
@@ -78,6 +82,8 @@ const typeDefs = [
     RoomType_1.roomTypeTypeDef,
     // Payment typedefs define payment queries/mutations and types
     payment_1.paymentTypeDef,
+    // Cancellation policy typedefs define the cancellation policy schema
+    cancellationPolicy_1.cancellationPolicyTypeDef,
 ];
 exports.typeDefs = typeDefs;
 //# sourceMappingURL=index.js.map

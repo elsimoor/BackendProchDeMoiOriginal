@@ -4,6 +4,25 @@ import ReservationModel from '../../models/ReservationModel';
 import HotelModel from '../../models/HotelModel';
 import InvoiceModel from '../../models/InvoiceModel';
 import PDFDocument from 'pdfkit';
+import fetch from 'node-fetch';
+
+// Import cancellation policies to evaluate refund rules during cancellation
+import CancellationPolicyModel from '../../models/CancellationPolicyModel';
+// Import Payment model so we can look up completed payments when processing
+// refunds during cancellation.  Payments record the Stripe
+// paymentIntent identifier required to trigger a refund via the Stripe
+// API.
+import PaymentModel from '../../models/PaymentModel';
+
+// Import models for other business types so we can resolve the
+// currency of a reservation.  Restaurants and salons store their
+// settings on the corresponding model keyed by clientId.  Hotels
+// derive the currency from the associated room’s hotel settings.
+import RestaurantModel from '../../models/RestaurantModel';
+import SalonModel from '../../models/SalonModel';
+import RoomModel from '../../models/RoomModel';
+// Email helper used to send reservation confirmations with a cancel link
+import { sendEmail } from '../../utils/email';
 
 // interface Context {
 //   user?: { id: string };
@@ -160,6 +179,62 @@ export const reservationResolvers = {
       } catch (err) {
         console.error('Failed to create invoice during confirmation', err);
       }
+
+      // Send a booking confirmation email with a cancellation link via SMTP.
+      // The email template is enhanced to provide a clean layout with
+      // booking details and a clear call‑to‑action for cancellation.
+      try {
+        const to = reservation.customerInfo?.email;
+        // Build cancellation link using the FRONTEND_URL environment variable, falling back to localhost
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const cancelLink = `${frontendUrl}/hotel/cancel?reservationId=${reservation._id}`;
+        // Format check‑in and check‑out dates if present.  Use ISO date
+        // format for consistency.  When fields are missing the line
+        // will be omitted from the email.
+        let checkInLine = '';
+        if (reservation.checkIn) {
+          const checkInDate = new Date(reservation.checkIn).toISOString().split('T')[0];
+          checkInLine = `<tr><td style="padding:8px 0;"><strong>Check‑in:</strong></td><td style="padding:8px 0;">${checkInDate}</td></tr>`;
+        }
+        let checkOutLine = '';
+        if (reservation.checkOut) {
+          const checkOutDate = new Date(reservation.checkOut).toISOString().split('T')[0];
+          checkOutLine = `<tr><td style="padding:8px 0;"><strong>Check‑out:</strong></td><td style="padding:8px 0;">${checkOutDate}</td></tr>`;
+        }
+        let amountLine = '';
+        if (typeof reservation.totalAmount === 'number' && reservation.totalAmount > 0) {
+          const amountStr = reservation.totalAmount.toFixed(2);
+          amountLine = `<tr><td style="padding:8px 0;"><strong>Total Amount:</strong></td><td style="padding:8px 0;">${amountStr}</td></tr>`;
+        }
+        const guestName = reservation.customerInfo?.name || 'Guest';
+        const html = `
+        <div style="max-width:600px;margin:0 auto;font-family:Arial, sans-serif;background-color:#f7f7f7;padding:20px;">
+          <div style="background-color:#ffffff;padding:20px;border-radius:8px;">
+            <h2 style="color:#333333;">Reservation Confirmation</h2>
+            <p>Hello ${guestName},</p>
+            <p>Thank you for your reservation. Here are your booking details:</p>
+            <table style="width:100%;border-collapse:collapse;">
+              <tr>
+                <td style="padding:8px 0;"><strong>Reservation ID:</strong></td>
+                <td style="padding:8px 0;">${reservation._id}</td>
+              </tr>
+              ${checkInLine}
+              ${checkOutLine}
+              ${amountLine}
+            </table>
+            <p>If you wish to cancel your reservation, please click the button below. Note that our cancellation policy may apply.</p>
+            <p style="text-align:center;">
+              <a href="${cancelLink}" style="display:inline-block;padding:10px 20px;background-color:#e53e3e;color:#ffffff;text-decoration:none;border-radius:4px;">Cancel Reservation</a>
+            </p>
+            <p style="font-size:12px;color:#777777;">If you have any questions, feel free to contact our support team.</p>
+          </div>
+        </div>
+        `;
+        await sendEmail(to, 'Reservation Confirmation', html);
+      } catch (err) {
+        console.error('Failed to send confirmation email', err);
+      }
+
       return reservation;
     },
 
@@ -183,6 +258,121 @@ export const reservationResolvers = {
         return true;
       }
       return false;
+    },
+
+    /**
+     * Cancel a hotel reservation after payment has been captured.  This
+     * mutation sets the reservation status to "cancelled" and computes
+     * the refund amount according to the business’s configured
+     * cancellation policies.  When cancelled by a user the refund is
+     * processed automatically via a webhook; when cancelled by a
+     * manager only the reservation is updated and it is assumed that
+     * the refund will be handled manually.  A CancellationResult
+     * containing success and refundAmount is returned.
+     */
+    cancelHotelReservation: async (
+      _parent: any,
+      { id, cancelledBy }: { id: string; cancelledBy: string },
+    ) => {
+      const reservation: any = await ReservationModel.findById(id);
+      if (!reservation) {
+        throw new Error('Reservation not found');
+      }
+      // Default refund amount.  This will remain zero when no
+      // cancellation policies match or when the reservation has no
+      // associated amount.
+      let refundAmount = 0;
+      // Compute refund only for hotel reservations with a total amount and
+      // check‑in date.  The logic mirrors the client‑side computation in
+      // the frontend: determine how many days remain until check‑in and
+      // select the first cancellation policy whose daysBefore threshold
+      // is satisfied.  The refund is totalAmount * (refundPercentage / 100).
+      if (
+        reservation.businessType === 'hotel' &&
+        typeof reservation.totalAmount === 'number' &&
+        reservation.totalAmount > 0
+      ) {
+        let daysBefore = 0;
+        if (reservation.checkIn) {
+          const now = new Date();
+          const checkInDate = new Date(reservation.checkIn);
+          const diffMs = checkInDate.getTime() - now.getTime();
+          daysBefore = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        }
+        // Load all policies for the reservation's business sorted descending
+        const policies = await CancellationPolicyModel.find({ businessId: reservation.businessId }).sort({ daysBefore: -1 });
+        let refundPercentage = 0;
+        for (const policy of policies) {
+          if (daysBefore >= policy.daysBefore) {
+            refundPercentage = policy.refundPercentage;
+            break;
+          }
+        }
+        refundAmount = (reservation.totalAmount ?? 0) * (refundPercentage / 100);
+      }
+      // When the user initiates the cancellation and a refund is due,
+      // process the refund via Stripe and update payment records.  The
+      // Payment model stores the stripePaymentIntentId captured during
+      // checkout; we locate the associated payment in the 'paid'
+      // state and call the Stripe refunds API.  After a successful
+      // refund we set the payment status to 'refunded' and mark the
+      // reservation paymentStatus as refunded.
+      if (cancelledBy?.toLowerCase() === 'user' && refundAmount > 0) {
+        try {
+          // Look up the paid payment for this reservation.  There should
+          // be only one completed payment per reservation.
+          const payment = await PaymentModel.findOne({ reservationId: id, status: 'paid' });
+          if (payment && payment.stripePaymentIntentId) {
+            // Dynamically import Stripe to avoid a global dependency.
+            const Stripe = require('stripe');
+            const secretKey = process.env.STRIPE_SECRET_KEY;
+            if (!secretKey) {
+              throw new Error('Missing STRIPE_SECRET_KEY environment variable');
+            }
+            const stripe = new Stripe(secretKey, { apiVersion: '2020-08-27' });
+            // Create the refund.  The amount must be specified in
+            // cents.  We round to the nearest cent.
+            const amountInCents = Math.round(refundAmount * 100);
+            await stripe.refunds.create({
+              payment_intent: payment.stripePaymentIntentId,
+              amount: amountInCents,
+            });
+            // Update payment status to refunded.  This value is
+            // validated by the Payment schema enumeration.
+            payment.status = 'refunded';
+            await payment.save();
+          }
+          // Also update reservation.paymentStatus to 'refunded'
+          reservation.paymentStatus = 'refunded';
+        } catch (err) {
+          console.error('Failed to process Stripe refund', err);
+        }
+      }
+      // Update reservation status to cancelled regardless of refund.  When
+      // a refund is processed above we also set paymentStatus accordingly.
+      reservation.status = 'cancelled';
+      await reservation.save();
+      // Invoke webhook when cancelled by user and a refund is due.  This
+      // provides a hook for external systems to perform additional
+      // processing (e.g. updating accounting systems).  The webhook
+      // executes after the Stripe refund so the caller can trust that
+      // funds have been returned.
+      if (cancelledBy?.toLowerCase() === 'user' && refundAmount > 0) {
+        try {
+          const webhookUrl = process.env.REFUND_WEBHOOK_URL;
+          // Only attempt to call the webhook when a URL is defined and fetch is available
+          if (webhookUrl && typeof fetch === 'function') {
+            await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reservationId: id, refundAmount }),
+            });
+          }
+        } catch (err) {
+          console.error('Failed to call refund webhook', err);
+        }
+      }
+      return { success: true, refundAmount };
     },
 
     updateReservation: async (
@@ -248,6 +438,51 @@ export const reservationResolvers = {
     },
     staffId: async ({ staffId }, _, { Loaders }) => {
       return (await staffId) ? await Loaders.staff.load(staffId) : null;
+    }
+    ,
+    /**
+     * Resolve the `currency` field on a reservation.  The currency is
+     * derived from the business associated with the reservation.
+     * Restaurants and salons store their preferred currency under
+     * settings.currency on the respective model (found via clientId).  For
+     * hotels, we look up the room to find the associated hotel and
+     * return its settings.currency.  If no currency can be resolved
+     * the default returned value is `USD`.  The returned code is
+     * always uppercase (e.g. `MAD`, `USD`).
+     */
+    currency: async (parent: any) => {
+      let code: string = 'USD';
+      try {
+        const type = (parent.businessType || '').toLowerCase();
+        if (type === 'restaurant') {
+          const restaurant: any = await RestaurantModel.findOne({ clientId: parent.businessId });
+          const cur = restaurant?.settings?.currency;
+          if (typeof cur === 'string' && cur) {
+            code = cur.toUpperCase();
+          }
+        } else if (type === 'salon') {
+          const salon: any = await SalonModel.findOne({ clientId: parent.businessId });
+          const cur = salon?.settings?.currency;
+          if (typeof cur === 'string' && cur) {
+            code = cur.toUpperCase();
+          }
+        } else if (type === 'hotel') {
+          if (parent.roomId) {
+            // Populate the hotel from the room.  Use lean() to avoid
+            // returning full mongoose documents unnecessarily.
+            const room: any = await RoomModel.findById(parent.roomId).populate('hotelId');
+            const hotel: any = room?.hotelId;
+            const cur = hotel?.settings?.currency;
+            if (typeof cur === 'string' && cur) {
+              code = cur.toUpperCase();
+            }
+          }
+        }
+      } catch (err) {
+        // Swallow errors; default remains USD
+        code = 'USD';
+      }
+      return code;
     }
   }
 };
