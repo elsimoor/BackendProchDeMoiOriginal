@@ -62,7 +62,6 @@
     "mongoose": "^5.5.1",
     "mongoose-paginate-v2": "^1.4.2",
     "n2words": "^1.21.0",
-    "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.1",
     "numeral": "^2.0.6",
     "path": "^0.12.7",

@@ -10,7 +10,6 @@ const ReservationModel_1 = __importDefault(require("../../models/ReservationMode
 const HotelModel_1 = __importDefault(require("../../models/HotelModel"));
 const InvoiceModel_1 = __importDefault(require("../../models/InvoiceModel"));
 const pdfkit_1 = __importDefault(require("pdfkit"));
-const node_fetch_1 = __importDefault(require("node-fetch"));
 // Import cancellation policies to evaluate refund rules during cancellation
 const CancellationPolicyModel_1 = __importDefault(require("../../models/CancellationPolicyModel"));
 // Import Payment model so we can look up completed payments when processing
@@ -318,8 +317,10 @@ exports.reservationResolvers = {
                 try {
                     const webhookUrl = process.env.REFUND_WEBHOOK_URL;
                     // Only attempt to call the webhook when a URL is defined and fetch is available
-                    if (webhookUrl && typeof node_fetch_1.default === 'function') {
-                        await (0, node_fetch_1.default)(webhookUrl, {
+                    // @ts-ignore
+                    if (webhookUrl && typeof fetch === 'function') {
+                        // @ts-ignore
+                        await fetch(webhookUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ reservationId: id, refundAmount }),

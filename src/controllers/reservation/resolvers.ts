@@ -4,7 +4,6 @@ import ReservationModel from '../../models/ReservationModel';
 import HotelModel from '../../models/HotelModel';
 import InvoiceModel from '../../models/InvoiceModel';
 import PDFDocument from 'pdfkit';
-import fetch from 'node-fetch';
 
 // Import cancellation policies to evaluate refund rules during cancellation
 import CancellationPolicyModel from '../../models/CancellationPolicyModel';
@@ -361,7 +360,9 @@ export const reservationResolvers = {
         try {
           const webhookUrl = process.env.REFUND_WEBHOOK_URL;
           // Only attempt to call the webhook when a URL is defined and fetch is available
+          // @ts-ignore
           if (webhookUrl && typeof fetch === 'function') {
+            // @ts-ignore
             await fetch(webhookUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
