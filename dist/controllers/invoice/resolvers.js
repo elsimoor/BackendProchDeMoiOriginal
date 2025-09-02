@@ -7,6 +7,10 @@ exports.invoiceResolvers = void 0;
 const InvoiceModel_1 = __importDefault(require("../../models/InvoiceModel"));
 const ReservationModel_1 = __importDefault(require("../../models/ReservationModel"));
 const pdfkit_1 = __importDefault(require("pdfkit"));
+const ClientModel_1 = __importDefault(require("../../models/ClientModel"));
+const RestaurantModel_1 = __importDefault(require("../../models/RestaurantModel"));
+const SalonModel_1 = __importDefault(require("../../models/SalonModel"));
+const RoomModel_1 = __importDefault(require("../../models/RoomModel"));
 /**
  * Helper function to generate a PDF for a given invoice.  The PDF
  * includes basic invoice details such as invoice ID, date, reservation
@@ -16,65 +20,112 @@ const pdfkit_1 = __importDefault(require("pdfkit"));
 async function generateInvoicePdfBuffer(invoice) {
     return new Promise(async (resolve, reject) => {
         try {
-            // Fetch the reservation to enrich the invoice with additional
-            // contextual information.  This allows us to include guest
-            // details and stay dates in the invoice PDF.
+            // Fetch context
             let reservation = null;
             if (invoice.reservationId) {
                 reservation = await ReservationModel_1.default.findById(invoice.reservationId);
             }
+            const client = invoice.businessId ? await ClientModel_1.default.findById(invoice.businessId) : null;
+            const brand = client?.name || 'Invoice';
+            const currency = reservation ? await resolveCurrencyCodeFromReservation(reservation) : 'USD';
             const doc = new pdfkit_1.default({ margin: 50 });
             const buffers = [];
             doc.on('data', (chunk) => buffers.push(chunk));
-            doc.on('end', () => {
-                resolve(Buffer.concat(buffers));
-            });
+            // @ts-ignore
+            doc.on('end', () => resolve(Buffer.concat(buffers)));
             // Header
-            doc.fontSize(20).text('Invoice', { align: 'center' });
+            doc.fontSize(20).fillColor('#111827').text(brand, { align: 'left' });
+            doc.moveTo(50, doc.y + 6).lineTo(545, doc.y + 6).strokeColor('#e5e7eb').stroke();
             doc.moveDown();
-            // Invoice metadata
-            doc.fontSize(12);
+            // Invoice title and metadata
+            doc.fontSize(18).fillColor('#111827').text('Invoice', { align: 'left' });
+            doc.moveDown(0.25);
+            doc.fontSize(12).fillColor('#374151');
             doc.text(`Invoice ID: ${invoice._id}`);
-            doc.text(`Date: ${invoice.date.toISOString().split('T')[0]}`);
+            doc.text(`Date: ${new Date(invoice.date).toISOString().split('T')[0]}`);
             if (reservation) {
                 doc.text(`Reservation ID: ${reservation._id}`);
-                if (reservation.customerInfo) {
+                if (reservation.customerInfo?.name)
                     doc.text(`Customer: ${reservation.customerInfo.name}`);
-                }
                 if (reservation.checkIn && reservation.checkOut) {
                     const checkInDate = new Date(reservation.checkIn).toISOString().split('T')[0];
                     const checkOutDate = new Date(reservation.checkOut).toISOString().split('T')[0];
                     doc.text(`Stay: ${checkInDate} to ${checkOutDate}`);
                 }
             }
-            doc.moveDown();
-            // Items table header
-            doc.fontSize(14).text('Items', { underline: true });
-            doc.moveDown(0.5);
-            // Table columns: Description | Price | Qty | Total
-            const tableTop = doc.y;
-            const colX = [50, 280, 360, 440];
-            doc.fontSize(12).text('Description', colX[0], tableTop);
-            doc.text('Price', colX[1], tableTop);
-            doc.text('Qty', colX[2], tableTop);
-            doc.text('Total', colX[3], tableTop);
-            doc.moveDown(0.5);
+            // Items table
+            doc.moveDown(0.75);
+            doc.fontSize(14).fillColor('#111827').text('Items', { underline: true });
+            doc.moveDown(0.25);
+            const startY = doc.y + 4;
+            const colX = [50, 310, 380, 460]; // Description, Price, Qty, Total
+            const lineHeight = 18;
+            doc.fontSize(12).fillColor('#6b7280');
+            doc.text('Description', colX[0], startY);
+            doc.text('Price', colX[1], startY, { width: 60, align: 'right' });
+            doc.text('Qty', colX[2], startY, { width: 40, align: 'right' });
+            doc.text('Total', colX[3], startY, { width: 80, align: 'right' });
+            doc.moveTo(50, startY + lineHeight).lineTo(545, startY + lineHeight).strokeColor('#e5e7eb').stroke();
+            doc.fillColor('#374151');
             invoice.items.forEach((item, idx) => {
-                const y = tableTop + 20 * (idx + 1);
+                const y = startY + lineHeight * (idx + 1);
                 doc.text(item.description, colX[0], y);
-                doc.text(item.price.toFixed(2), colX[1], y);
-                doc.text(item.quantity.toString(), colX[2], y);
-                doc.text(item.total.toFixed(2), colX[3], y);
+                doc.text(formatCurrency(item.price, currency), colX[1], y, { width: 60, align: 'right' });
+                doc.text(String(item.quantity), colX[2], y, { width: 40, align: 'right' });
+                doc.text(formatCurrency(item.total, currency), colX[3], y, { width: 80, align: 'right' });
             });
             // Total
             doc.moveDown(2);
-            doc.fontSize(14).text(`Total: $${invoice.total.toFixed(2)}`, { align: 'right' });
+            doc.fontSize(14).fillColor('#111827').text(`Total: ${formatCurrency(invoice.total, currency)}`, { align: 'right' });
+            // Footer
+            doc.moveDown(1);
+            doc.strokeColor('#e5e7eb').moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+            doc.fontSize(10).fillColor('#6b7280').text('Thank you for your business!', 50, doc.y + 6, { align: 'left' });
             doc.end();
         }
         catch (err) {
             reject(err);
         }
     });
+}
+async function resolveCurrencyCodeFromReservation(reservation) {
+    try {
+        let code = 'USD';
+        const type = (reservation.businessType || '').toLowerCase();
+        if (type === 'restaurant') {
+            const restaurant = await RestaurantModel_1.default.findOne({ clientId: reservation.businessId });
+            const cur = restaurant?.settings?.currency;
+            if (typeof cur === 'string' && cur)
+                code = cur.toUpperCase();
+        }
+        else if (type === 'salon') {
+            const salon = await SalonModel_1.default.findOne({ clientId: reservation.businessId });
+            const cur = salon?.settings?.currency;
+            if (typeof cur === 'string' && cur)
+                code = cur.toUpperCase();
+        }
+        else if (type === 'hotel') {
+            if (reservation.roomId) {
+                const room = await RoomModel_1.default.findById(reservation.roomId).populate('hotelId');
+                const hotel = room?.hotelId;
+                const cur = hotel?.settings?.currency;
+                if (typeof cur === 'string' && cur)
+                    code = cur.toUpperCase();
+            }
+        }
+        return code;
+    }
+    catch {
+        return 'USD';
+    }
+}
+function formatCurrency(amount, currency) {
+    try {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(amount);
+    }
+    catch {
+        return amount.toFixed(2);
+    }
 }
 exports.invoiceResolvers = {
     Query: {

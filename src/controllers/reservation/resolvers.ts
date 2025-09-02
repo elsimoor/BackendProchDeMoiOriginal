@@ -22,6 +22,8 @@ import SalonModel from '../../models/SalonModel';
 import RoomModel from '../../models/RoomModel';
 // Email helper used to send reservation confirmations with a cancel link
 import { sendEmail } from '../../utils/email';
+import ClientModel from '../../models/ClientModel';
+import { renderReservationConfirmationEmail } from '../../templates/email/reservationConfirmation';
 
 // interface Context {
 //   user?: { id: string };
@@ -243,6 +245,8 @@ export const reservationResolvers = {
         // Build cancellation link using the FRONTEND_URL environment variable, falling back to localhost
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         const cancelLink = `${frontendUrl}/hotel/cancel?reservationId=${reservation._id}`;
+        const client = reservation.businessId ? await ClientModel.findById(reservation.businessId) : null;
+        const currencyCode = await resolveCurrencyCodeForReservation(reservation);
         // Format check‑in and check‑out dates if present.  Use ISO date
         // format for consistency.  When fields are missing the line
         // will be omitted from the email.
@@ -262,29 +266,8 @@ export const reservationResolvers = {
           amountLine = `<tr><td style="padding:8px 0;"><strong>Total Amount:</strong></td><td style="padding:8px 0;">${amountStr}</td></tr>`;
         }
         const guestName = reservation.customerInfo?.name || 'Guest';
-        const html = `
-        <div style="max-width:600px;margin:0 auto;font-family:Arial, sans-serif;background-color:#f7f7f7;padding:20px;">
-          <div style="background-color:#ffffff;padding:20px;border-radius:8px;">
-            <h2 style="color:#333333;">Reservation Confirmation</h2>
-            <p>Hello ${guestName},</p>
-            <p>Thank you for your reservation. Here are your booking details:</p>
-            <table style="width:100%;border-collapse:collapse;">
-              <tr>
-                <td style="padding:8px 0;"><strong>Reservation ID:</strong></td>
-                <td style="padding:8px 0;">${reservation._id}</td>
-              </tr>
-              ${checkInLine}
-              ${checkOutLine}
-              ${amountLine}
-            </table>
-            <p>If you wish to cancel your reservation, please click the button below. Note that our cancellation policy may apply.</p>
-            <p style="text-align:center;">
-              <a href="${cancelLink}" style="display:inline-block;padding:10px 20px;background-color:#e53e3e;color:#ffffff;text-decoration:none;border-radius:4px;">Cancel Reservation</a>
-            </p>
-            <p style="font-size:12px;color:#777777;">If you have any questions, feel free to contact our support team.</p>
-          </div>
-        </div>
-        `;
+        void checkInLine, checkOutLine, amountLine, guestName;
+        const html = renderReservationConfirmationEmail(reservation, { client, cancelLink, currencyCode });
         await sendEmail(to, 'Reservation Confirmation', html);
       } catch (err) {
         console.error('Failed to send confirmation email', err);
@@ -468,7 +451,7 @@ export const reservationResolvers = {
       if (!reservation) {
         throw new Error('Reservation not found');
       }
-      const buffer = await generateReservationPdfBuffer(reservation);
+      const buffer = await generateReservationPdfBufferEnhanced(reservation);
       return buffer.toString('base64');
     }
   },
@@ -638,3 +621,116 @@ async function generateReservationPdfBuffer(reservation: any): Promise<Buffer> {
     }
   });
 }
+
+async function generateReservationPdfBufferEnhanced(reservation: any): Promise<Buffer> {
+  const client = reservation.businessId ? await ClientModel.findById(reservation.businessId) : null;
+  const brand = client?.name || 'Reservation';
+  const currencyCode = await resolveCurrencyCodeForReservation(reservation);
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50 });
+      const buffers: Buffer[] = [];
+      doc.on('data', (chunk) => buffers.push(chunk as Buffer));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+
+      // Header / Brand
+      doc.fontSize(20).fillColor('#111827').text(brand, { align: 'left' });
+      doc.moveTo(50, doc.y + 6).lineTo(545, doc.y + 6).strokeColor('#e5e7eb').stroke();
+      doc.moveDown();
+
+      // Title
+      doc.fillColor('#111827').fontSize(18).text('Reservation Summary', { align: 'left' });
+      doc.moveDown(0.5);
+
+      // Basic information
+      doc.fontSize(12).fillColor('#374151');
+      doc.text(`Reservation ID: ${reservation._id}`);
+      if (reservation.status) doc.text(`Status: ${reservation.status}`);
+      if (reservation.paymentStatus) doc.text(`Payment Status: ${reservation.paymentStatus}`);
+
+      // Customer information
+      if (reservation.customerInfo) {
+        doc.moveDown(0.5);
+        doc.fillColor('#111827').text('Customer Information', { underline: true });
+        doc.fillColor('#374151');
+        if (reservation.customerInfo.name) doc.text(`Name: ${reservation.customerInfo.name}`);
+        if (reservation.customerInfo.email) doc.text(`Email: ${reservation.customerInfo.email}`);
+        if (reservation.customerInfo.phone) doc.text(`Phone: ${reservation.customerInfo.phone}`);
+      }
+
+      // Booking details
+      doc.moveDown(0.5);
+      doc.fillColor('#111827').text('Booking Details', { underline: true });
+      doc.fillColor('#374151');
+      if (reservation.businessType === 'hotel') {
+        if (reservation.checkIn) doc.text(`Check-in: ${new Date(reservation.checkIn).toISOString().split('T')[0]}`);
+        if (reservation.checkOut) doc.text(`Check-out: ${new Date(reservation.checkOut).toISOString().split('T')[0]}`);
+        if (reservation.guests !== undefined && reservation.guests !== null) doc.text(`Guests: ${reservation.guests}`);
+      } else if (reservation.businessType === 'restaurant') {
+        if (reservation.date) doc.text(`Date: ${new Date(reservation.date).toISOString().split('T')[0]}`);
+        if (reservation.time) doc.text(`Time: ${reservation.time}`);
+        if (reservation.partySize !== undefined && reservation.partySize !== null) doc.text(`Party size: ${reservation.partySize}`);
+      } else if (reservation.businessType === 'salon') {
+        if (reservation.date) doc.text(`Date: ${new Date(reservation.date).toISOString().split('T')[0]}`);
+        if (reservation.time) doc.text(`Time: ${reservation.time}`);
+        if (reservation.duration !== undefined && reservation.duration !== null) doc.text(`Duration: ${reservation.duration} minutes}`);
+      }
+      if (reservation.notes) {
+        doc.moveDown(0.5);
+        doc.fillColor('#111827').text('Notes', { underline: true });
+        doc.fillColor('#374151').text(String(reservation.notes));
+      }
+
+      // Total amount
+      if (typeof reservation.totalAmount === 'number') {
+        doc.moveDown(1);
+        doc.fillColor('#111827').fontSize(14).text(`Total Amount: ${formatCurrency(reservation.totalAmount, currencyCode)}`, { align: 'right' });
+      }
+
+      // Footer
+      doc.moveDown(1);
+      doc.strokeColor('#e5e7eb').moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+      doc.fontSize(10).fillColor('#6b7280').text('Generated by the Booking System', 50, doc.y + 6, { align: 'left' });
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+async function resolveCurrencyCodeForReservation(reservation: any): Promise<string> {
+  try {
+    let code = 'USD';
+    const type = (reservation.businessType || '').toLowerCase();
+    if (type === 'restaurant') {
+      const restaurant: any = await RestaurantModel.findOne({ clientId: reservation.businessId });
+      const cur = restaurant?.settings?.currency;
+      if (typeof cur === 'string' && cur) code = cur.toUpperCase();
+    } else if (type === 'salon') {
+      const salon: any = await SalonModel.findOne({ clientId: reservation.businessId });
+      const cur = salon?.settings?.currency;
+      if (typeof cur === 'string' && cur) code = cur.toUpperCase();
+    } else if (type === 'hotel') {
+      if (reservation.roomId) {
+        const room: any = await RoomModel.findById(reservation.roomId).populate('hotelId');
+        const hotel: any = room?.hotelId;
+        const cur = hotel?.settings?.currency;
+        if (typeof cur === 'string' && cur) code = cur.toUpperCase();
+      }
+    }
+    return code;
+  } catch {
+    return 'USD';
+  }
+}
+
+function formatCurrency(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(amount);
+  } catch {
+    return amount.toFixed(2);
+  }
+}
+// Reference legacy generator to satisfy noUnusedLocals
+void generateReservationPdfBuffer;
