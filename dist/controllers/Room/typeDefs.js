@@ -95,6 +95,15 @@ exports.roomTypeDef = (0, apollo_server_express_1.gql) `
     """
     availableRooms(hotelId: ID!, checkIn: Date!, checkOut: Date!, adults: Int!, children: Int!): [Room!]!
     availableRoomsCount(hotelId: ID!, checkIn: Date!, checkOut: Date!, adults: Int!, children: Int!): Int!
+
+    # Return a list of rooms that are available across **all** active hotels
+    # for the provided date range and guest counts.  A room is considered
+    # available when it is active, has status "available", has capacity
+    # sufficient for the total number of guests (adults + children) and
+    # there are no overlapping reservations for that room across the
+    # specified interval.  This query allows the front‑end to display
+    # all available rooms without specifying a single hotel ID.
+    availableRoomsAllHotels(checkIn: Date!, checkOut: Date!, adults: Int!, children: Int!): [Room!]!
   }
 `;
 //# sourceMappingURL=typeDefs.js.map
