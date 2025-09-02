@@ -180,6 +180,7 @@ export const reservationResolvers = {
               quantity: 1,
               total: amount,
             },
+            
           ];
           const invoice = new InvoiceModel({
             reservationId: reservation._id,
